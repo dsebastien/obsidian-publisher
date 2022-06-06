@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 
 const targetVersion = process.env.npm_package_version;
-const appFolder = "./apps/obsidian-publisher";
+const appFolder = "./apps/obsidian-publisher/src/assets";
 const targetFolder = "./dist/apps/obsidian-publisher";
 const manifestFile = "manifest.json";
 const versionsFile = "versions.json";

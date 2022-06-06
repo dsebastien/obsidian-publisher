@@ -10,19 +10,19 @@
         "outputPath": "dist/apps/obsidian-publisher",
         "main": "apps/obsidian-publisher/src/main.ts",
         "tsConfig": "apps/obsidian-publisher/tsconfig.app.json",
-        "assets": ["apps/obsidian-publisher/src/assets"]
+        "assets": [{
+          "glob": "**/*",
+          "input": "apps/obsidian-publisher/src/assets/",
+          "ignore": ["gitkeep"],
+          "output": ""
+
+        }]
       },
       "configurations": {
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/obsidian-publisher/src/environments/environment.ts",
-              "with": "apps/obsidian-publisher/src/environments/environment.prod.ts"
-            }
-          ]
+          "inspect": false
         }
       }
     },
