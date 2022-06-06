@@ -9,6 +9,8 @@
     "url": "https://github.com/dsebastien/obsidian-publisher"
   },
   "scripts": {
+    "format": "nx format",
+    "lint": "nx lint",
     "serve": "npm run start",
     "start": "nx serve",
     "build": "rm -rf dist/apps/obsidian-publisher && nx build && version",
