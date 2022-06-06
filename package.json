@@ -1,7 +1,13 @@
 {
   "name": "obsidian-publisher",
-  "version": "0.0.0",
+  "description": "Easily publish your content",
+  "version": "1.0.0",
   "license": "MIT",
+  "author": {
+    "name": "Sébastien Dubois",
+    "email": "sebastien@developassion.be",
+    "url": "https://github.com/dsebastien/obsidian-publisher"
+  },
   "scripts": {
     "start": "nx serve",
     "build": "rm -rf dist/apps/obsidian-publisher && nx build && version",
@@ -18,7 +24,9 @@
     "@nrwl/node": "^14.1.9",
     "@nrwl/nx-cloud": "latest",
     "@nrwl/workspace": "14.1.9",
+    "@types/jsonwebtoken": "8.5.8",
     "@types/jest": "27.4.1",
+    "@types/markdown-it": "12.2.3",
     "@types/node": "16.11.7",
     "@typescript-eslint/eslint-plugin": "~5.18.0",
     "@typescript-eslint/parser": "~5.18.0",
@@ -29,9 +37,14 @@
     "prettier": "^2.5.1",
     "ts-jest": "27.1.4",
     "ts-node": "9.1.1",
-    "typescript": "~4.6.2"
+    "typescript": "4.7.3"
   },
   "dependencies": {
+    "builtin-modules": "3.3.0",
+    "gray-matter": "4.0.3",
+    "jsonwebtoken": "8.5.1",
+    "markdown-it": "13.0.1",
+    "obsidian": "0.14.8",
     "tslib": "^2.3.0"
   }
 }
