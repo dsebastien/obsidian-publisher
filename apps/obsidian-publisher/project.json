@@ -13,7 +13,7 @@
         "assets": [{
           "glob": "**/*",
           "input": "apps/obsidian-publisher/src/assets/",
-          "ignore": ["gitkeep"],
+          "ignore": [],
           "output": ""
 
         }]
