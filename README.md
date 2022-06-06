@@ -1,5 +1,5 @@
-# Obsidian Publisher
-Automates publishing from Obsidian
+# ObsidianPublisher
+Easily publish your content
 
 ## Installation
 Not ready for prime time...
@@ -38,7 +38,7 @@ Not ready for prime time...
     - Default: false
   - "opublisher_excerpt": Summary of the post
     - Type: string
-  - "opublisher_feature_image": 
+  - "opublisher_feature_image":
     - Type: string (URL)
   - "opublisher_ghost_published_at": To schedule a post (will only be considered if the status is set to "scheduled")
   - "opublisher_ghost_newsletter_slug": Slug of the Ghost newsletter to send this post to
@@ -85,7 +85,7 @@ Not ready for prime time...
     - Set "opublisher_ghost_url"
     - Set "opublisher_ghost_id"
     - Set "opublisher_medium_id"
-    - Calculate hash and add to note in 
+    - Calculate hash and add to note in
 - Existing posts (detected when there is a "opublisher_ghost_id" or "opublisher_medium_id" in YAML front matter)
   - Calculate the hash of the note and compare with previous one in "opublisher_hash". If changed, proceed with the update
   - Compare metadata and update if needed
@@ -101,7 +101,7 @@ Not ready for prime time...
   -   If if is not set, the note is considered "new"
   -   If it is set, it is used to determine if there were modifications since the last time it was published
   -   To calculate the hash
-    -  hash(JSON stringify(YAML frontmatter without parts that vary because of the plugin) + JSON stringify(note text))
+  -  hash(JSON stringify(YAML frontmatter without parts that vary because of the plugin) + JSON stringify(note text))
 
 ### Plugin configuration
 - General
@@ -147,3 +147,8 @@ Not ready for prime time...
 ## TODO
 - Add issue templates
 - Add tags
+- Update readme
+- Build with vite (?)
+- Make sure the manifest is updated in dist
+- Make sure versions.json is updated in main code
+- Make sure styles.css is copied
