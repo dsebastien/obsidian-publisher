@@ -13,7 +13,7 @@
     "lint": "nx lint",
     "serve": "npm run start",
     "start": "nx serve",
-    "build": "rm -rf dist/apps/obsidian-publisher && nx build && version",
+    "build": "rm -rf dist/apps/obsidian-publisher && nx build --sourceMap=false && version",
     "test": "nx test",
     "tsc": "cd apps/obsidian-publisher && tsc --noEmit --project tsconfig.app.json",
     "version": "node ./version-bump.mjs && git add apps/obsidian-publisher/src/assets/manifest.json apps/obsidian-publisher/src/assets/versions.json"
