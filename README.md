@@ -1,6 +1,20 @@
 # Obsidian Publisher
 Automates publishing from Obsidian
 
+## Installation
+Not ready for prime time...
+
+## Usage
+
+### Ghost
+- Create a [custom integration](https://ghost.org/integrations/custom-integrations/) on Ghost.
+- Retrieve the **Admin API Key** and the **API URL**
+- Go to the settings of the plugin, enable Ghost and configure the settings
+- Add the Admin API Key, the API URL and the Base URL of your Ghost Website
+
+### Medium
+Not ready for prime time...
+
 ## Specifications
 ### Process
 - Trigger via CMP + P "Publish all" action
@@ -118,3 +132,18 @@ Automates publishing from Obsidian
 - How to deal with Tags on Medium
 - Links handling
 - Image handling
+
+## Development
+
+- Clone the repository
+- Run `npm install` or `yarn install` to install the dependencies
+- Run `npm run dev` to start compiling (will automatically recompile when changes are detected)
+- Copy `main.js`, `styles.css` and `manifest.json` to your Obsidian vault, under `.obsidian/plugins/obsidian-publisher/`
+
+## Bugs and feature requests
+- Create issues for bugs
+- Create discussions for feature requests
+
+## TODO
+- Add issue templates
+- Add tags
