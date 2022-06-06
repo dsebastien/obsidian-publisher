@@ -4,34 +4,39 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/node:webpack",
+      "executor": "./tools/executors/esbuild:esbuild",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/obsidian-publisher",
+        "outputFile": "main.js",
+        "outputFormat": "cjs",
+        "outputTarget": "es2016",
         "main": "apps/obsidian-publisher/src/main.ts",
+        "sourceMap": false,
         "tsConfig": "apps/obsidian-publisher/tsconfig.app.json",
-        "assets": [{
-          "glob": "**/*",
-          "input": "apps/obsidian-publisher/src/assets/",
-          "ignore": [],
-          "output": ""
-        }],
-        "externalDependencies": "all",
-        "generatePackageJson": false
+        "watchMode": false,
+        "logLevel": "info"
       },
       "configurations": {
-        "production": {
-          "optimization": true,
-          "extractLicenses": true,
-          "inspect": false,
-          "externalDependencies": "all"
-        }
+        "production": {}
       }
     },
-    "serve": {
-      "executor": "@nrwl/node:node",
+    "watch": {
+      "executor": "./tools/executors/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
       "options": {
-        "buildTarget": "obsidian-publisher:build"
+        "outputPath": "dist/apps/obsidian-publisher",
+        "outputFile": "main.js",
+        "outputFormat": "cjs",
+        "outputTarget": "es2016",
+        "main": "apps/obsidian-publisher/src/main.ts",
+        "sourceMap": false,
+        "tsConfig": "apps/obsidian-publisher/tsconfig.app.json",
+        "watchMode": true,
+        "logLevel": "info"
+      },
+      "configurations": {
+        "production": {}
       }
     },
     "lint": {

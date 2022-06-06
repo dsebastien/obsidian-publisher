@@ -1,0 +1,9 @@
+{
+  "executors": {
+    "esbuild": {
+      "implementation": "./impl",
+      "schema": "./schema.json",
+      "description": "Creates a bundle using ESBuild"
+    }
+  }
+}

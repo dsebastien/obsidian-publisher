@@ -1,6 +1,6 @@
 {
 	"id": "obsidian-publisher",
-	"name": "Obsidian Publisher",
+	"name": "Publisher",
 	"minAppVersion": "0.14.8",
 	"description": "Easily publish your content",
 	"author": "@dsebastien <sebastien@developassion.be>",

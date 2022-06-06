@@ -1,22 +1,28 @@
 # ObsidianPublisher
+
 Easily publish your content
 
 ## Installation
+
 Not ready for prime time...
 
 ## Usage
 
 ### Ghost
+
 - Create a [custom integration](https://ghost.org/integrations/custom-integrations/) on Ghost.
 - Retrieve the **Admin API Key** and the **API URL**
 - Go to the settings of the plugin, enable Ghost and configure the settings
 - Add the Admin API Key, the API URL and the Base URL of your Ghost Website
 
 ### Medium
+
 Not ready for prime time...
 
 ## Specifications
+
 ### Process
+
 - Trigger via CMP + P "Publish all" action
 - Go through all notes
 - Detect those with required metadata (plugin-specific!)
@@ -24,6 +30,7 @@ Not ready for prime time...
 - Publish or update those to target platforms and include/update metadata
 
 ### Metadata in YAML front matter
+
 - Mandatory for the note to be considered for publishing
   - "opublisher_status": draft | published | scheduled (scheduled is only supported by Ghost and requires "opublisher_ghost_published_at")
   - "opublisher_slug": unique slug to use for this post
@@ -50,12 +57,13 @@ Not ready for prime time...
     - Default: false
   - "opublisher_ghost_canonical_url": Canonical URL to use on Ghost
   - "opublisher_medium_canonical_url": Canonical URL to use on Medium
-  - "opublisher_ghost_id": Id of the post on Ghost (if already exists). Set automatically by the plugin after a post has be  en published
+  - "opublisher_ghost_id": Id of the post on Ghost (if already exists). Set automatically by the plugin after a post has be en published
   - "opublisher_ghost_url": URL of the post on Ghost. Set automatically by the plugin after a post has been published
-  - "opublisher_medium_id": Id of the post on Medium  (if already exists). Set automatically by the plugin after a post has been published
+  - "opublisher_medium_id": Id of the post on Medium (if already exists). Set automatically by the plugin after a post has been published
   - "opublisher_hash"
 
 ### How the plugin deals with...
+
 - Links
   - Adapt to match target platform Base URL
   - Remove those that don't correspond to also published posts
@@ -98,12 +106,13 @@ Not ready for prime time...
     - Metadata
 - Modification detection
   - To detect modifications, the plugin uses a hash stored in the "opublisher_hash" property
-  -   If if is not set, the note is considered "new"
-  -   If it is set, it is used to determine if there were modifications since the last time it was published
-  -   To calculate the hash
-  -  hash(JSON stringify(YAML frontmatter without parts that vary because of the plugin) + JSON stringify(note text))
+  - If if is not set, the note is considered "new"
+  - If it is set, it is used to determine if there were modifications since the last time it was published
+  - To calculate the hash
+  - hash(JSON stringify(YAML frontmatter without parts that vary because of the plugin) + JSON stringify(note text))
 
 ### Plugin configuration
+
 - General
   - When to publish
     - Manual
@@ -129,6 +138,7 @@ Not ready for prime time...
   - ... (TODO)
 
 ### Open questions
+
 - How to deal with Tags on Medium
 - Links handling
 - Image handling
@@ -141,14 +151,12 @@ Not ready for prime time...
 - Copy `main.js`, `styles.css` and `manifest.json` to your Obsidian vault, under `.obsidian/plugins/obsidian-publisher/`
 
 ## Bugs and feature requests
+
 - Create issues for bugs
 - Create discussions for feature requests
 
 ## TODO
-- Add issue templates
+
 - Add tags
-- Update readme
-- Build with vite (?)
-- Make sure the manifest is updated in dist
-- Make sure versions.json is updated in main code
-- Make sure styles.css is copied
+- Add GitHub issue templates
+- Fix `npm run watch`. Switch Nx executor to ESBuild plugin: https://nx-plugins.netlify.app/esbuild/

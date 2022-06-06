@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "type": "object",
+  "cli": "nx",
+  "properties": {
+    "watchMode": {
+      "type": "boolean",
+      "description": "Watch mode"
+    },
+    "outputPath": {
+      "type": "string",
+      "description": "Output path"
+    },
+    "outputFile": {
+      "type": "string",
+      "description": "Output file"
+    },
+    "outputFormat": {
+      "type": "string",
+      "enum": ["iife", "cjs", "esm"],
+      "description": "Output format"
+    },
+    "outputTarget": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Output target"
+    },
+    "main": {
+      "type": "string",
+      "description": "Path to the main entry point"
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": ["silent", "error", "warning", "info", "debug", "verbose"],
+      "description": "The log level"
+    },
+    "sourceMap": {
+      "type": "boolean",
+      "description": "Generate source maps"
+    },
+    "tsConfig": {
+      "type": "string",
+      "description": "Path to the tsconfig.json file"
+    }
+  }
+}
