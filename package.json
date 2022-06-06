@@ -13,7 +13,13 @@
     "lint": "nx lint",
     "serve": "npm run start",
     "start": "nx serve",
-    "build": "rm -rf dist/apps/obsidian-publisher && nx build --sourceMap=false && version",
+    "prepare": "npm run version && rm -rf dist/apps/obsidian-publisher && mkdir -p dist/apps/obsidian-publisher && npm run copy:assets",
+    "prewatch": "npm run prepare",
+    "watch": "node esbuild.config.mjs",
+    "prebuild": "npm run prepare",
+    "build": "node esbuild.config.mjs production",
+    "copy:assets": "cp ./apps/obsidian-publisher/src/assets/* ./dist/apps/obsidian-publisher/",
+
     "test": "nx test",
     "tsc": "cd apps/obsidian-publisher && tsc --noEmit --project tsconfig.app.json",
     "version": "node ./version-bump.mjs && git add apps/obsidian-publisher/src/assets/manifest.json apps/obsidian-publisher/src/assets/versions.json"
@@ -27,12 +33,13 @@
     "@nrwl/node": "^14.1.9",
     "@nrwl/nx-cloud": "latest",
     "@nrwl/workspace": "14.1.9",
-    "@types/jsonwebtoken": "8.5.8",
     "@types/jest": "27.4.1",
+    "@types/jsonwebtoken": "8.5.8",
     "@types/markdown-it": "12.2.3",
     "@types/node": "16.11.7",
     "@typescript-eslint/eslint-plugin": "~5.18.0",
     "@typescript-eslint/parser": "~5.18.0",
+    "esbuild": "0.14.42",
     "eslint": "~8.12.0",
     "eslint-config-prettier": "8.1.0",
     "jest": "27.5.1",
@@ -48,6 +55,6 @@
     "jsonwebtoken": "8.5.1",
     "markdown-it": "13.0.1",
     "obsidian": "0.14.8",
-    "tslib": "^2.3.0"
+    "tslib": "2.4.0"
   }
 }

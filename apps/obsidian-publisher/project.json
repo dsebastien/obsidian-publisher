@@ -15,14 +15,16 @@
           "input": "apps/obsidian-publisher/src/assets/",
           "ignore": [],
           "output": ""
-
-        }]
+        }],
+        "externalDependencies": "all",
+        "generatePackageJson": false
       },
       "configurations": {
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false
+          "inspect": false,
+          "externalDependencies": "all"
         }
       }
     },
