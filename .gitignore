@@ -40,3 +40,6 @@ Thumbs.db
 
 # Obsidian
 data.json
+
+# Nx
+tools/**/*.js
