@@ -23,7 +23,7 @@ Not ready for prime time...
 
 ### Process
 
-- Trigger via CMP + P "Publish all" action
+- Trigger via CMP + P "Publish all" action OR via the ribbon icon
 - Go through all notes
 - Detect those with required metadata (plugin-specific!)
 - Validate everything before doing anything
@@ -114,10 +114,9 @@ Not ready for prime time...
 ### Plugin configuration
 
 - General
-  - When to publish
-    - Manual
-      - Type: boolean
-      - Default: true
+  - Automatic publication
+    - Type: boolean
+    - Default: false
 - Ghost
   - Enabled
     - Type: boolean
@@ -147,16 +146,18 @@ Not ready for prime time...
 
 - Clone the repository
 - Run `npm install` or `yarn install` to install the dependencies
-- Run `npm run dev` to start compiling (will automatically recompile when changes are detected)
+- Run `npm run build:dev` to build the development version
+  - This will generate files under dist/apps/obsidian-publisher
+  - The output will include a `.hotreload` file to let the Hot-Reload Obsidian plugin know that the plugin should be reloaded when files change
 - Copy `main.js`, `styles.css` and `manifest.json` to your Obsidian vault, under `.obsidian/plugins/obsidian-publisher/`
+
+Optional:
+- Install the Hot-Reload Obsidian plugin to automatically reload the plugin when the files change: https://github.com/pjeby/hot-reload
+
+## Dependencies
+- Immer for immutability: https://immerjs.github.io/immer/return
 
 ## Bugs and feature requests
 
 - Create issues for bugs
 - Create discussions for feature requests
-
-## TODO
-
-- Add tags
-- Add GitHub issue templates
-- Fix `npm run watch`. Switch Nx executor to ESBuild plugin: https://nx-plugins.netlify.app/esbuild/
