@@ -4,9 +4,6 @@
   "affected": {
     "defaultBase": "main"
   },
-  "cli": {
-    "defaultCollection": "@nrwl/node"
-  },
   "implicitDependencies": {
     "package.json": {
       "dependencies": "*",
@@ -23,13 +20,10 @@
       }
     }
   },
-  "targetDependencies": {
-    "build": [
-      {
-        "target": "build",
-        "projects": "dependencies"
-      }
-    ]
-  },
-  "defaultProject": "obsidian-publisher"
+  "defaultProject": "obsidian-publisher",
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    }
+  }
 }
