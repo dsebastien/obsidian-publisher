@@ -25,42 +25,45 @@ Not ready for prime time...
 
 - Trigger via CMP + P "Publish all" action OR via the ribbon icon
 - Go through all notes
-- Detect those with required metadata (plugin-specific!)
+- Detect those with the required metadata (plugin-specific!)
 - Validate everything before doing anything
 - Publish or update those to target platforms and include/update metadata
 
 ### Metadata in YAML front matter
 
 - Mandatory for the note to be considered for publishing
-  - "opublisher_status": draft | published | scheduled (scheduled is only supported by Ghost and requires "opublisher_ghost_published_at")
-  - "opublisher_slug": unique slug to use for this post
+  - `opublisher_status`: draft | published | scheduled (scheduled is only supported by Ghost and requires "opublisher_ghost_published_at")
+  - `opublisher_slug`: unique slug to use for this post
     - If multiple posts are detected with
 - Optional
-  - "opublisher_title": To override the title. By default, the name of the note is used as title
+  - `opublisher_title`: Override the title. By default, the name of the file note is used as title. (e.g., if the filename is `Cool.md`, then the post tile will be `Cool`)
     - Type: string
-  - "opublisher_tags": To override the tags. By default, the standard tags will be used and created on the target platforms if needed
+  - `opublisher_tags`: Override the tags. By default, the YAML front matter tags will be used and created on the target platforms if needed
     - Type: string[]
-  - "opublisher_featured":
+    - Examples
+      - `opublisher_tags: a, b, c` (or with one tag per line below the property name and prefixed by `- `)
+  - `opublisher_excerpt`: Summary of the post
+    - Type: string
+    - Default: ''
+  - `opublisher_feature_image_url`:
+    - Type: string (URL)
+  - `opublisher_ghost_featured`:
     - Type: boolean
     - Default: false
-  - "opublisher_excerpt": Summary of the post
-    - Type: string
-  - "opublisher_feature_image":
-    - Type: string (URL)
-  - "opublisher_ghost_published_at": To schedule a post (will only be considered if the status is set to "scheduled")
-  - "opublisher_ghost_newsletter_slug": Slug of the Ghost newsletter to send this post to
-  - "opublisher_ghost_newsletter_segment": filter the target email audience. If unset, defaults to all (as per Ghost API)
+  - `opublisher_ghost_published_at`: Schedule a post (will only be considered if the status is set to "scheduled")
+  - `opublisher_ghost_newsletter_slug`: Slug of the Ghost newsletter to send this post to
+  - `opublisher_ghost_newsletter_segment`: Filter the target email audience. If unset, defaults to all (as per Ghost API)
     - Type: string (Ghost NQL query)
     - Default: ""
-  - "opublisher_ghost_newsletter_only": Only send to the newsletter
+  - `opublisher_ghost_newsletter_only`: Only send to the newsletter
     - Type: boolean
     - Default: false
-  - "opublisher_ghost_canonical_url": Canonical URL to use on Ghost
-  - "opublisher_medium_canonical_url": Canonical URL to use on Medium
-  - "opublisher_ghost_id": Id of the post on Ghost (if already exists). Set automatically by the plugin after a post has be en published
-  - "opublisher_ghost_url": URL of the post on Ghost. Set automatically by the plugin after a post has been published
-  - "opublisher_medium_id": Id of the post on Medium (if already exists). Set automatically by the plugin after a post has been published
-  - "opublisher_hash"
+  - `opublisher_ghost_canonical_url`: Canonical URL to use on Ghost
+  - `opublisher_medium_canonical_url`: Canonical URL to use on Medium
+  - `opublisher_ghost_id`: Id of the post on Ghost (if already exists). Set automatically by the plugin after a post has been published
+  - `opublisher_ghost_url`: URL of the post on Ghost. Set automatically by the plugin after a post has been published
+  - `opublisher_medium_id`: Id of the post on Medium (if already exists). Set automatically by the plugin after a post has been published
+  - `opublisher_hash`
 
 ### How the plugin deals with...
 
@@ -72,6 +75,10 @@ Not ready for prime time...
     - Ghost
       - Use Ghost Images API?
     - How to handle image captions?
+- Embedded Tweets
+  - Convert to the target platform's syntax (if any)
+- Embedded YouTube Videos
+- Embedded Github Gists
 - SEO metadata
   - TODO
 - Validations
@@ -144,17 +151,25 @@ Not ready for prime time...
 
 ## Development
 
+- Create a test Obsidian vault to avoid losing data while testing the plugin
+- Make sure that the safe mode is disabled
+- Define an environment variable called `OBSIDIAN_VAULT_LOCATION` that points to your Obsidian vault. You should use a test vault . That variable will be used by the `build:dev` script to deploy the updated files
+  - Example: `export OBSIDIAN_VAULT_LOCATION=~/TestObsidianVault`
+- Optional: Install the Hot-Reload Obsidian plugin in your Obsidian vault to automatically reload the plugin when the files change: https://github.com/pjeby/hot-reload
 - Clone the repository
 - Run `npm install` or `yarn install` to install the dependencies
 - Run `npm run build:dev` to build the development version
   - This will generate files under dist/apps/obsidian-publisher
   - The output will include a `.hotreload` file to let the Hot-Reload Obsidian plugin know that the plugin should be reloaded when files change
-- Copy `main.js`, `styles.css` and `manifest.json` to your Obsidian vault, under `.obsidian/plugins/obsidian-publisher/`
 
-Optional:
-- Install the Hot-Reload Obsidian plugin to automatically reload the plugin when the files change: https://github.com/pjeby/hot-reload
+## Contributing
+
+- Check out the project board: https://github.com/dsebastien/obsidian-publisher/projects/1
+- Check out the issues and look for those with `help wanted` or `good first issue`: https://github.com/dsebastien/obsidian-publisher/issues
+- Review and comment PRs
 
 ## Dependencies
+
 - Immer for immutability: https://immerjs.github.io/immer/return
 
 ## Bugs and feature requests
