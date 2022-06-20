@@ -18,7 +18,7 @@
     "build:executor": "npx tsc tools/executors/esbuild/impl",
     "prepare:dist": "npm run tsc && npx rimraf ./dist/apps/obsidian-publisher && npx mkdirp ./dist/apps/obsidian-publisher && npm run version && npm run copy:assets",
     "prebuild:dev": "npm run prepare:dist",
-    "build:dev": "nx build && touch ./dist/apps/obsidian-publisher/.hotreload",
+    "build:dev": "nx build && touch ./dist/apps/obsidian-publisher/.hotreload && npx mkdirp ${OBSIDIAN_VAULT_LOCATION}/.obsidian/plugins/obsidian-publisher && cp -r ./dist/apps/obsidian-publisher/ ${OBSIDIAN_VAULT_LOCATION}/.obsidian/plugins/",
     "prebuild:prod": "npm run prepare:dist",
     "build:prod": "nx build",
     "prewatch": "npm run prepare:dist",
