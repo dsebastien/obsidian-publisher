@@ -3,6 +3,7 @@ import { OPublisherPlugin } from '../plugin';
 import * as pluginManifest from '../../assets/manifest.json';
 import produce from 'immer';
 import { log } from '../utils/log';
+import { stripTrailingSlash } from '../utils/strip-trailing-slash';
 
 export class OPublisherSettingTab extends PluginSettingTab {
   plugin: OPublisherPlugin;
@@ -50,9 +51,12 @@ export class OPublisherSettingTab extends PluginSettingTab {
         .setPlaceholder('https://...')
         .setValue(this.plugin.settings.ghostSettings.baseUrl)
         .onChange(async (value) => {
-          log('Ghost site base URL set to: ' + value, 'debug');
+          // Make sure there is no ending slash and no whitespace at the end
+          const newValue = stripTrailingSlash(value.trim());
+          log('Ghost site base URL set to: ' + newValue, 'debug');
+
           this.plugin.settings = produce(this.plugin.settings, (draft) => {
-            draft.ghostSettings.baseUrl = value;
+            draft.ghostSettings.baseUrl = newValue;
           });
           await this.plugin.saveSettings();
         })
