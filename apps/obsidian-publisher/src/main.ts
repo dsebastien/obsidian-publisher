@@ -1,1 +1,4 @@
-console.log('Hello World!');
+import { OPublisherPlugin } from './app/plugin';
+
+// noinspection JSUnusedGlobalSymbols
+export default OPublisherPlugin;
