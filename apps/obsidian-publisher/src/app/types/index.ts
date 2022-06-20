@@ -21,7 +21,7 @@ export type OPublisherPublishAction = typeof OPublisherPublishActions[number];
 export interface OPublisherPostMetadata {
   tags: string[];
   excerpt: string;
-  slug: string;
+  slug?: string;
 }
 
 export interface OPublisherRawPost {

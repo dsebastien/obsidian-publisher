@@ -69,20 +69,6 @@ export const publishPosts = async (
       log(`Valid post status found`, 'debug');
     }
 
-    log('Checking the post slug', 'debug');
-    const slug = parseFrontMatterEntry(frontMatter, 'opublisher_slug');
-    if (!slug) {
-      log(
-        `Ignoring file as the YAML front matter does not include the mandatory opublisher_slug property`,
-        'debug'
-      );
-      continue;
-    } else if (!isValidOPublisherPostSlug(slug)) {
-      continue;
-    } else {
-      log(`Valid slug found`, 'debug');
-    }
-
     let content = await vault.cachedRead(file);
     content = stripYamlFrontMatter(content);
     log('Contents:', 'debug', content);
@@ -99,6 +85,19 @@ export const publishPosts = async (
       // Only accept title override if it is a string
       log('Title override:', 'debug', titleOverride);
       title = titleOverride;
+    }
+
+    log('Checking the post slug', 'debug');
+    // WARNING: Important to turn the value to undefined instead of null here
+    const slug: string | undefined = parseFrontMatterEntry(frontMatter, 'opublisher_slug')?? undefined;
+    if (slug && !isValidOPublisherPostSlug(slug)) {
+      new Notice(
+        `${LOG_PREFIX} The 'opublisher_slug' property is invalid for ${file.name} (${file.path}). Fix the issue if you want to publish it. Aborting`,
+        3000
+      );
+      continue;
+    } else {
+      log(`Valid slug found`, 'debug');
     }
 
     let tags: string[] = parseFrontMatterTags(frontMatter) ?? [];
