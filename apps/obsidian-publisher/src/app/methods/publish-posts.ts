@@ -15,7 +15,9 @@ import {
 import { log, LOG_PREFIX, LOG_SEPARATOR } from '../utils/log';
 import { publishToGhost } from './publish-posts-to-ghost';
 import { stripYamlFrontMatter } from '../utils/strip-yaml-frontmatter';
-import { isValidOPublisherPostStatus } from './is-valid-opublisher-post-status';
+import {
+  isValidOPublisherPostStatus,
+} from './is-valid-opublisher-post-status';
 import { isValidOPublisherPostSlug } from './is-valid-opublisher-post-slug';
 import { isValidGhostConfiguration } from './is-valid-ghost-configuration';
 
@@ -56,14 +58,14 @@ export const publishPosts = async (
     //log('Front matter:', 'debug', JSON.stringify(frontMatter));
 
     log('Checking the post status', 'debug');
-    const postStatus = parseFrontMatterEntry(frontMatter, 'opublisher_status');
-    if (!postStatus) {
+    const status = parseFrontMatterEntry(frontMatter, 'opublisher_status');
+    if (!status) {
       log(
         `Ignoring file as the YAML front matter does not include the mandatory opublisher_status property`,
         'debug'
       );
       continue;
-    } else if (!isValidOPublisherPostStatus(postStatus)) {
+    } else if (!isValidOPublisherPostStatus(status)) {
       continue;
     } else {
       log(`Valid post status found`, 'debug');
@@ -133,9 +135,11 @@ export const publishPosts = async (
         excerpt,
         slug,
         tags,
+        status,
       },
       frontMatter,
       publishAction,
+      filePath: file.path,
     };
 
     if (publishAction === 'publish') {

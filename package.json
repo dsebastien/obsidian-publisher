@@ -39,7 +39,7 @@
     "@nrwl/workspace": "14.3.6",
     "@types/jest": "27.4.1",
     "@types/jsonwebtoken": "8.5.8",
-    "@types/markdown-it": "12.2.3",
+    "@types/marked": "4.0.3",
     "@types/node": "16.11.7",
     "@typescript-eslint/eslint-plugin": "5.24.0",
     "@typescript-eslint/parser": "5.24.0",
@@ -58,7 +58,7 @@
     "gray-matter": "4.0.3",
     "immer": "9.0.15",
     "jsonwebtoken": "8.5.1",
-    "markdown-it": "13.0.1",
+    "marked": "4.0.17",
     "obsidian": "0.14.8",
     "tslib": "2.4.0"
   }

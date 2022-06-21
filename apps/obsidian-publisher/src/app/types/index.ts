@@ -1,5 +1,6 @@
 import { FrontMatterCache } from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
+import { OPublisherPostStatus } from '../methods/is-valid-opublisher-post-status';
 
 export interface OPublisherSettings {
   automaticPublication: boolean;
@@ -22,6 +23,7 @@ export interface OPublisherPostMetadata {
   tags: string[];
   excerpt: string;
   slug?: string;
+  status: OPublisherPostStatus;
 }
 
 export interface OPublisherRawPost {
@@ -30,4 +32,5 @@ export interface OPublisherRawPost {
   frontMatter: FrontMatterCache;
   metadata: OPublisherPostMetadata;
   publishAction: OPublisherPublishAction;
+  filePath: string;
 }
