@@ -159,14 +159,44 @@ export const publishPosts = async (
     return;
   }
 
+  log(
+    `Performing validations before publishing`,
+    'debug'
+  );
+
+  for(const post of posts) {
+    // Reject notes with identical slugs
+    if(posts.filter((postToCompareTo) => {
+      return post.metadata.slug === postToCompareTo.metadata.slug && post.filePath !== postToCompareTo.filePath;
+    }).length > 0) {
+      new Notice(
+        `${LOG_PREFIX} Publish operation cancelled. Found at least two notes with the same slug: ${post.metadata.slug}. Fix the issue and try again.`,
+        5000
+      );
+      return;
+    }
+
+    // Reject posts with identical titles
+    if(posts.filter((postToCompareTo) => {
+      return post.title === postToCompareTo.title && post.filePath !== postToCompareTo.filePath;
+    }).length > 0) {
+      new Notice(
+        `${LOG_PREFIX} Publish operation cancelled. Found at least two notes with the same title: ${post.title}. Fix the issue and try again.`,
+        5000
+      );
+      return;
+    }
+  }
+
   new Notice(
-    `${LOG_PREFIX} Found ${posts.length} notes to publish. Proceeding...`,
+    `${LOG_PREFIX} Found ${posts.length} note(s) to publish. Proceeding...`,
     3000
   );
 
   if (settings.ghostSettings.enabled) {
     if (isValidGhostConfiguration(settings.ghostSettings)) {
       await publishToGhost(posts, settings.ghostSettings);
+      return new Promise(() => 0);
     } else {
       new Notice(
         `${LOG_PREFIX} The Ghost settings are invalid. Please fix the plugin configuration and try again`,
