@@ -5,12 +5,13 @@ import { marked } from 'marked';
 import { OPublisherRawPost } from '../types';
 import { log } from '../utils/log';
 import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
-import { GhostPostWrapper } from '../types/ghost-api';
+import {
+  GHOST_ADMIN_API_PATH, GHOST_API_VERSION,
+  GHOST_POSTS_ENDPOINT,
+  GhostPostCreationResponse,
+  GhostPostWrapper
+} from '../types/ghost-api';
 import {delay} from "../utils/delay";
-
-const GHOST_API_VERSION = 'v4.0';
-const GHOST_ADMIN_API_PATH = 'ghost/api/admin';
-const GHOST_POSTS_ENDPOINT = 'posts';
 
 /**
  * Publish the provided posts to Ghost.
@@ -69,20 +70,18 @@ export const publishToGhost = async (
     });
 
     // Parse the response
-    const resultAsJSON = JSON.parse(result);
+    const resultAsJSON: GhostPostCreationResponse = JSON.parse(result);
 
     // Next: inspect call results
     // And extract relevant metadata (e.g., id, url, etc)
-    if (resultAsJSON?.posts) {
+    if (resultAsJSON.posts) {
       new Notice(
         `"${resultAsJSON?.posts?.[0]?.title}" (${post.filePath}) has been published successfully!`
       );
     } else {
+      new Notice(`Failed to publish the post. Error: ${resultAsJSON.errors![0].context || resultAsJSON.errors![0].message}`)
       new Notice(
-        `${resultAsJSON.errors[0].context || resultAsJSON.errors[0].message}`
-      );
-      new Notice(
-        `${resultAsJSON.errors[0]?.details[0].message} - ${resultAsJSON.errors[0]?.details[0].params.allowedValues}`
+        `Error details: ${resultAsJSON.errors![0]?.details[0].message} - ${resultAsJSON.errors![0]?.details[0].params.allowedValues}`
       );
     }
 
