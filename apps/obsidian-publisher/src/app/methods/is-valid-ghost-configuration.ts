@@ -14,9 +14,9 @@ export const isValidGhostConfiguration = (
   // Assume the configuration is valid until proven otherwise
   let retVal = true;
 
-  log('Ghost Base URL:', 'debug', ghostSettings.baseUrl);
-  if (!isValidUrl(ghostSettings.baseUrl)) {
-    log(`The Ghost Base URL is invalid`, 'debug', ghostSettings.baseUrl);
+  log('Ghost Base URL:', 'debug', ghostSettings.apiUrl);
+  if (!isValidUrl(ghostSettings.apiUrl)) {
+    log(`The Ghost Base URL is invalid`, 'debug', ghostSettings.apiUrl);
     retVal = false;
   }
 
@@ -25,7 +25,7 @@ export const isValidGhostConfiguration = (
     ghostSettings.adminToken.trim().length === 0 ||
     !ghostSettings.adminToken.includes(':')
   ) {
-    log(`The Ghost Admin Token is invalid`, 'debug', ghostSettings.baseUrl);
+    log(`The Ghost Admin Token is invalid`, 'debug', ghostSettings.adminToken);
     retVal = false;
   }
   return retVal;

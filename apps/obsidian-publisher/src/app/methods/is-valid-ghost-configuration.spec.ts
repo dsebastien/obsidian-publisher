@@ -5,7 +5,7 @@ describe('Is Valid Ghost configuration', () => {
   it('should accept valid configuration', () => {
     const configuration: OPublisherGhostSettings = {
       adminToken: 'a:b',
-      baseUrl: 'https://www.google.com',
+      apiUrl: 'https://www.google.com',
       enabled: true,
     };
     const result = isValidGhostConfiguration(configuration);
@@ -16,7 +16,7 @@ describe('Is Valid Ghost configuration', () => {
     // Invalid admin token
     let configuration: OPublisherGhostSettings = {
       adminToken: 'a',
-      baseUrl: 'https://www.google.com',
+      apiUrl: 'https://www.google.com',
       enabled: true,
     };
     let result = isValidGhostConfiguration(configuration);
@@ -25,7 +25,7 @@ describe('Is Valid Ghost configuration', () => {
     // No admin token
     configuration = {
       adminToken: '',
-      baseUrl: '',
+      apiUrl: '',
       enabled: true,
     };
     result = isValidGhostConfiguration(configuration);
@@ -34,7 +34,7 @@ describe('Is Valid Ghost configuration', () => {
     // No base URL
     configuration = {
       adminToken: 'a:b',
-      baseUrl: '',
+      apiUrl: '',
       enabled: true,
     };
     result = isValidGhostConfiguration(configuration);
@@ -43,7 +43,7 @@ describe('Is Valid Ghost configuration', () => {
     // No base URL
     configuration = {
       adminToken: 'a:b',
-      baseUrl: ' ',
+      apiUrl: ' ',
       enabled: true,
     };
     result = isValidGhostConfiguration(configuration);
@@ -52,7 +52,7 @@ describe('Is Valid Ghost configuration', () => {
     // Invalid base URL
     configuration = {
       adminToken: 'a:b',
-      baseUrl: '@@@@!! foo',
+      apiUrl: '@@@@!! foo',
       enabled: true,
     };
     result = isValidGhostConfiguration(configuration);

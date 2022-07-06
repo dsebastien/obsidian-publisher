@@ -23,7 +23,7 @@ export const publishToGhost = async (
   settings: OPublisherGhostSettings
 ): Promise<number> => {
   log(
-    `Publishing ${posts.length} post(s) to Ghost Website (${settings.baseUrl})`,
+    `Publishing ${posts.length} post(s) to Ghost Website (${settings.apiUrl})`,
     'info'
   );
 
@@ -57,7 +57,7 @@ export const publishToGhost = async (
     );
 
     const result = await request({
-      url: `${settings.baseUrl}/${GHOST_ADMIN_API_PATH}/${GHOST_POSTS_ENDPOINT}/?source=html`,
+      url: `${settings.apiUrl}/${GHOST_ADMIN_API_PATH}/${GHOST_POSTS_ENDPOINT}/?source=html`,
       method: 'POST',
       contentType: 'application/json',
       headers: {

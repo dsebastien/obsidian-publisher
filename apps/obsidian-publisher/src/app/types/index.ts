@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: OPublisherSettings = {
   ghostSettings: {
     enabled: false,
     adminToken: '',
-    baseUrl: '',
+    apiUrl: '',
   },
 };
 

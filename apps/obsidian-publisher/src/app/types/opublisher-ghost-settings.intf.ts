@@ -7,9 +7,9 @@ export interface OPublisherGhostSettings {
    */
   enabled: boolean;
   /**
-   * Base URL of the Ghost Website
+   * API URL of the Ghost Website
    */
-  baseUrl: string;
+  apiUrl: string;
   /**
    * Admin Token to use
    */

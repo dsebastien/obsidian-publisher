@@ -45,18 +45,18 @@ export class OPublisherSettingTab extends PluginSettingTab {
         })
     );
 
-    new Setting(containerEl).setName('Ghost Site Base URL').addText((text) =>
+    new Setting(containerEl).setName('Ghost Site API URL').addText((text) =>
       text
         .setDisabled(!this.plugin.settings.ghostSettings.enabled)
         .setPlaceholder('https://...')
-        .setValue(this.plugin.settings.ghostSettings.baseUrl)
+        .setValue(this.plugin.settings.ghostSettings.apiUrl)
         .onChange(async (value) => {
           // Make sure there is no ending slash and no whitespace at the end
           const newValue = stripTrailingSlash(value.trim());
-          log('Ghost site base URL set to: ' + newValue, 'debug');
+          log('Ghost site API URL set to: ' + newValue, 'debug');
 
           this.plugin.settings = produce(this.plugin.settings, (draft) => {
-            draft.ghostSettings.baseUrl = newValue;
+            draft.ghostSettings.apiUrl = newValue;
           });
           await this.plugin.saveSettings();
         })
