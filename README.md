@@ -153,7 +153,7 @@ Not ready for prime time...
 
 - Create a test Obsidian vault to avoid losing data while testing the plugin
 - Make sure that the safe mode is disabled
-- Define an environment variable called `OBSIDIAN_VAULT_LOCATION` that points to your Obsidian vault. You should use a test vault . That variable will be used by the `build:dev` script to deploy the updated files
+- Define an environment variable called `OBSIDIAN_VAULT_LOCATION` that points to your Obsidian vault. You should use a test vault, not your real one. That variable will be used by the `build:dev` script to deploy the updated files
   - Example: `export OBSIDIAN_VAULT_LOCATION=~/TestObsidianVault`
 - Optional: Install the Hot-Reload Obsidian plugin in your Obsidian vault to automatically reload the plugin when the files change: https://github.com/pjeby/hot-reload
 - Clone the repository
@@ -161,6 +161,7 @@ Not ready for prime time...
 - Run `npm run build:dev` to build the development version
   - This will generate files under dist/apps/obsidian-publisher
   - The output will include a `.hotreload` file to let the Hot-Reload Obsidian plugin know that the plugin should be reloaded when files change
+  - This will also copy the output to the $OBSIDIAN_VAULT_LOCATION folder
 
 ## Contributing
 
