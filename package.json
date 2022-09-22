@@ -10,7 +10,8 @@
   },
   "scripts": {
     "postinstall": "npm run build:executor",
-    "format": "nx format",
+    "format": "nx format --all",
+    "format:all": "npm run format",
     "lint": "nx lint",
     "build": "npm run build:dev",
     "serve": "npm run start",

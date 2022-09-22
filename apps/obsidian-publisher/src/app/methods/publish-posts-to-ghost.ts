@@ -1,10 +1,10 @@
-import {sign} from 'jsonwebtoken';
-import {Notice, request} from 'obsidian';
-import {marked} from 'marked';
+import { sign } from 'jsonwebtoken';
+import { Notice, request } from 'obsidian';
+import { marked } from 'marked';
 
-import {OPublisherRawPost} from '../types';
-import {log} from '../utils/log';
-import {OPublisherGhostSettings} from '../types/opublisher-ghost-settings.intf';
+import { OPublisherRawPost } from '../types';
+import { log } from '../utils/log';
+import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
 import {
   GHOST_ADMIN_API_PATH,
   GHOST_API_VERSION,
@@ -12,8 +12,8 @@ import {
   GhostPostCreationResponse,
   GhostPostWrapper,
 } from '../types/ghost-api';
-import {delay} from '../utils/delay';
-import {DELAY_BETWEEN_ACTIONS, NOTICE_TIMEOUT} from '../constants';
+import { delay } from '../utils/delay';
+import { DELAY_BETWEEN_ACTIONS, NOTICE_TIMEOUT } from '../constants';
 
 /**
  * Publish the provided posts to Ghost.

@@ -12,15 +12,13 @@ import {
   parseFrontMatterTags,
   Vault,
 } from 'obsidian';
-import {log, LOG_PREFIX, LOG_SEPARATOR} from '../utils/log';
-import {publishToGhost} from './publish-posts-to-ghost';
-import {stripYamlFrontMatter} from '../utils/strip-yaml-frontmatter';
-import {
-  isValidOPublisherPostStatus,
-} from './is-valid-opublisher-post-status';
-import {isValidOPublisherPostSlug} from './is-valid-opublisher-post-slug';
-import {isValidGhostConfiguration} from './is-valid-ghost-configuration';
-import {NOTICE_TIMEOUT} from "../constants";
+import { log, LOG_PREFIX, LOG_SEPARATOR } from '../utils/log';
+import { publishToGhost } from './publish-posts-to-ghost';
+import { stripYamlFrontMatter } from '../utils/strip-yaml-frontmatter';
+import { isValidOPublisherPostStatus } from './is-valid-opublisher-post-status';
+import { isValidOPublisherPostSlug } from './is-valid-opublisher-post-slug';
+import { isValidGhostConfiguration } from './is-valid-ghost-configuration';
+import { NOTICE_TIMEOUT } from '../constants';
 
 /**
  * Identify the posts to publish, and trigger their publication based on the settings and metadata
@@ -92,7 +90,8 @@ export const publishPosts = async (
 
     log('Checking the post slug', 'debug');
     // WARNING: Important to turn the value to undefined instead of null here
-    const slug: string | undefined = parseFrontMatterEntry(frontMatter, 'opublisher_slug') ?? undefined;
+    const slug: string | undefined =
+      parseFrontMatterEntry(frontMatter, 'opublisher_slug') ?? undefined;
     if (slug && !isValidOPublisherPostSlug(slug)) {
       new Notice(
         `${LOG_PREFIX} The 'opublisher_slug' property is invalid for ${file.name} (${file.path}). Fix the issue if you want to publish it. Aborting`,
@@ -164,16 +163,18 @@ export const publishPosts = async (
     return;
   }
 
-  log(
-    `Performing validations before publishing`,
-    'debug'
-  );
+  log(`Performing validations before publishing`, 'debug');
 
   for (const post of posts) {
     // Reject notes with identical slugs
-    if (posts.filter((postToCompareTo) => {
-      return post.metadata.slug === postToCompareTo.metadata.slug && post.filePath !== postToCompareTo.filePath;
-    }).length > 0) {
+    if (
+      posts.filter((postToCompareTo) => {
+        return (
+          post.metadata.slug === postToCompareTo.metadata.slug &&
+          post.filePath !== postToCompareTo.filePath
+        );
+      }).length > 0
+    ) {
       new Notice(
         `${LOG_PREFIX} Publish operation cancelled. Found at least two notes with the same slug: ${post.metadata.slug}. Fix the issue and try again.`,
         NOTICE_TIMEOUT
@@ -182,9 +183,14 @@ export const publishPosts = async (
     }
 
     // Reject posts with identical titles
-    if (posts.filter((postToCompareTo) => {
-      return post.title === postToCompareTo.title && post.filePath !== postToCompareTo.filePath;
-    }).length > 0) {
+    if (
+      posts.filter((postToCompareTo) => {
+        return (
+          post.title === postToCompareTo.title &&
+          post.filePath !== postToCompareTo.filePath
+        );
+      }).length > 0
+    ) {
       new Notice(
         `${LOG_PREFIX} Publish operation cancelled. Found at least two notes with the same title: ${post.title}. Fix the issue and try again.`,
         NOTICE_TIMEOUT

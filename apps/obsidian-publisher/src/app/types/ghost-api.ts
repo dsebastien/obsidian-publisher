@@ -80,7 +80,7 @@ export interface GhostPostCreationResponseErrorDetail {
   message: string;
   params: {
     allowedValues: string;
-  }
+  };
 }
 
 export interface GhostPostCreationResponseError {
