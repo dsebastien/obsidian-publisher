@@ -27,6 +27,7 @@
     "test": "nx test",
     "tsc": "tsc --noEmit --project ./apps/obsidian-publisher/tsconfig.app.json",
     "update": "nx migrate latest",
+    "migrate": "npx nx migrate --run-migrations",
     "version": "node ./version-bump.mjs && git add apps/obsidian-publisher/src/assets/manifest.json apps/obsidian-publisher/src/assets/versions.json"
   },
   "private": true,
