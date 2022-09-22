@@ -1,17 +1,19 @@
-import { sign } from 'jsonwebtoken';
-import { Notice, request } from 'obsidian';
-import { marked } from 'marked';
+import {sign} from 'jsonwebtoken';
+import {Notice, request} from 'obsidian';
+import {marked} from 'marked';
 
-import { OPublisherRawPost } from '../types';
-import { log } from '../utils/log';
-import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
+import {OPublisherRawPost} from '../types';
+import {log} from '../utils/log';
+import {OPublisherGhostSettings} from '../types/opublisher-ghost-settings.intf';
 import {
-  GHOST_ADMIN_API_PATH, GHOST_API_VERSION,
+  GHOST_ADMIN_API_PATH,
+  GHOST_API_VERSION,
   GHOST_POSTS_ENDPOINT,
   GhostPostCreationResponse,
-  GhostPostWrapper
+  GhostPostWrapper,
 } from '../types/ghost-api';
-import {delay} from "../utils/delay";
+import {delay} from '../utils/delay';
+import {DELAY_BETWEEN_ACTIONS, NOTICE_TIMEOUT} from '../constants';
 
 /**
  * Publish the provided posts to Ghost.
@@ -46,7 +48,8 @@ export const publishToGhost = async (
   for (const post of posts) {
     log(`Publishing post ${post.title} to Ghost`, 'debug');
     new Notice(
-      `Publishing post ${currentPost++}/${posts.length}`
+      `Publishing post ${currentPost++}/${posts.length}`,
+      NOTICE_TIMEOUT
     );
 
     // Temporary (will later be rewritten as the content gets processed (e.g., for embeds)
@@ -57,7 +60,7 @@ export const publishToGhost = async (
       postProcessedContent
     );
 
-    const result = await request({
+    const response = await request({
       url: `${settings.apiUrl}/${GHOST_ADMIN_API_PATH}/${GHOST_POSTS_ENDPOINT}/?source=html`,
       method: 'POST',
       contentType: 'application/json',
@@ -70,55 +73,71 @@ export const publishToGhost = async (
     });
 
     // Parse the response
-    const resultAsJSON: GhostPostCreationResponse = JSON.parse(result);
+    const responseAsJSON: GhostPostCreationResponse = JSON.parse(response);
 
     // Next: inspect call results
     // And extract relevant metadata (e.g., id, url, etc)
-    if (resultAsJSON.posts) {
+    if (responseAsJSON.posts) {
       new Notice(
-        `"${resultAsJSON?.posts?.[0]?.title}" (${post.filePath}) has been published successfully!`
+        `"${responseAsJSON?.posts?.[0]?.title}" (${post.filePath}) has been published successfully!`,
+        NOTICE_TIMEOUT
       );
     } else {
-      new Notice(`Failed to publish the post. Error: ${resultAsJSON.errors![0].context || resultAsJSON.errors![0].message}`)
       new Notice(
-        `Error details: ${resultAsJSON.errors![0]?.details[0].message} - ${resultAsJSON.errors![0]?.details[0].params.allowedValues}`
+        `Failed to publish the post. Error: ${
+          responseAsJSON.errors![0].context || responseAsJSON.errors![0].message
+        }`,
+        NOTICE_TIMEOUT
+      );
+      new Notice(
+        `Error details: ${responseAsJSON.errors![0]?.details[0].message} - ${
+          responseAsJSON.errors![0]?.details[0].params.allowedValues
+        }`,
+        NOTICE_TIMEOUT
       );
     }
 
-    log('Ghost publication result:', 'debug', result);
+    log('Ghost publication result:', 'debug', response);
 
     // We delay the processing to avoid hitting rate limits
-    await delay(150);
+    await delay(DELAY_BETWEEN_ACTIONS);
   }
 
   // Next: return collected call results
   return 0;
 };
 
+// TODO move to separate file
 const createGhostPost = (
   post: OPublisherRawPost,
   postProcessedContent: string
 ): GhostPostWrapper => ({
   posts: [
     {
+      slug: post.metadata.slug,
+      tags: post.metadata.tags,
       title: post.title,
       og_title: post.title,
       meta_title: post.title,
       twitter_title: post.title,
-      tags: post.metadata.tags,
-      status: post.metadata.status,
-      slug: post.metadata.slug,
-      excerpt: post.metadata.excerpt,
-      custom_excerpt: post.metadata.excerpt,
-      email_only: false,
-      featured: false,
       meta_description: post.metadata.excerpt,
       og_description: post.metadata.excerpt,
       twitter_description: post.metadata.excerpt,
+      excerpt: post.metadata.excerpt,
+      custom_excerpt: post.metadata.excerpt,
+      status: post.metadata.status,
+      email_only: false,
+      featured: false,
       visibility: 'public',
       html: marked(postProcessedContent, {
-        // TODO define baseUrl
+        // TODO define baseUrl for links
       }),
+      canonical_url: undefined,
+      og_image: undefined,
+      published_at: undefined,
+      feature_image: undefined,
+      feature_image_alt: undefined,
+      feature_image_caption: undefined,
     },
   ],
 });

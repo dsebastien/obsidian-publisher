@@ -31,12 +31,12 @@ Not ready for prime time...
 
 ### Metadata in YAML front matter
 
-- Mandatory for the note to be considered for publishing
+- Mandatory properties for the note to be considered for publishing
   - `opublisher_status`: draft | published | scheduled (scheduled is only supported by Ghost and requires "opublisher_ghost_published_at")
-- Optional
+- Optional properties
   - `opublisher_title`: Override the title. By default, the name of the file note is used as title. (e.g., if the filename is `Cool.md`, then the post tile will be `Cool`)
     - Type: string
-  - `opublisher_slug`: unique slug to use for this post
+  - `opublisher_slug`: Unique slug to use for this post
   - If multiple posts are detected with
   - `opublisher_tags`: Override the tags. By default, the YAML front matter tags will be used and created on the target platforms if needed
     - Type: string[]
