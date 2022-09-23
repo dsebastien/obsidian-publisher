@@ -3,8 +3,8 @@
  * https://ghost.org/docs/admin-api/
  * https://github.com/TryGhost/SDK/blob/main/packages/admin-api/lib/admin-api.js
  */
-declare module "@tryghost/admin-api" {
-  import type {AxiosResponse} from "axios";
+declare module '@tryghost/admin-api' {
+  import type { AxiosResponse } from 'axios';
 
   /**
    * Ghost post object
@@ -26,7 +26,7 @@ declare module "@tryghost/admin-api" {
     feature_image_alt?: string | null;
     feature_image_caption?: string | null;
     featured: boolean;
-    status: "draft" | "published" | "scheduled";
+    status: 'draft' | 'published' | 'scheduled';
     visibility: GhostPostVisibility;
     published_at?: string | null;
     codeinjection_head?: string | null;
@@ -77,7 +77,6 @@ declare module "@tryghost/admin-api" {
     name: string;
     slug: string;
     description: string | null;
-
   }
 
   export interface GhostAdminApiOptions {
@@ -105,7 +104,9 @@ declare module "@tryghost/admin-api" {
     /**
      * Replace the function used to send HTTP requests
      */
-    makeRequest?: (options: GhostAdminApiMakeRequestOptions) => Promise<unknown>; // TODO refine
+    makeRequest?: (
+      options: GhostAdminApiMakeRequestOptions
+    ) => Promise<unknown>; // TODO refine
     /**
      * Replace the function used to generate tokens
      * @param key the key
@@ -119,7 +120,7 @@ declare module "@tryghost/admin-api" {
     method: string;
     data: Record<unknown>[] | undefined;
     params: Record<unknown>;
-    headers: Record<unknown>
+    headers: Record<unknown>;
   }
 
   export interface GhostAdminApiMediaUploadData {
@@ -158,83 +159,170 @@ declare module "@tryghost/admin-api" {
     constructor(options: GhostAdminApiOptions);
 
     posts: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: GhostPost, queryParams: Record<unknown> = {}) => Promise<GhostPostCreationResponse>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: GhostPost,
+        queryParams: Record<unknown> = {}
+      ) => Promise<GhostPostCreationResponse>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     pages: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     tags: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     members: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     users: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     newsletters: {
-      read: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      read: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
       browse: (options: Record<unknown>) => Promise<unknown>;
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     webhooks: {
-      add: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      edit: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
-      del: (data: Record<unknown>, queryParams: Record<unknown> = {}) => Promise<unknown>;
+      add: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      edit: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
+      del: (
+        data: Record<unknown>,
+        queryParams: Record<unknown> = {}
+      ) => Promise<unknown>;
     };
 
     images: {
-      upload: (data: GhostAdminApiImageUploadData | FormData) => Promise<unknown>;
-    }
+      upload: (
+        data: GhostAdminApiImageUploadData | FormData
+      ) => Promise<unknown>;
+    };
 
     media: {
-      upload: (data: GhostAdminApiMediaUploadData | FormData) => Promise<unknown>;
-    }
+      upload: (
+        data: GhostAdminApiMediaUploadData | FormData
+      ) => Promise<unknown>;
+    };
 
     files: {
-      upload: (data: GhostAdminApiFileUploadData | FormData) => Promise<unknown>;
-    }
+      upload: (
+        data: GhostAdminApiFileUploadData | FormData
+      ) => Promise<unknown>;
+    };
 
     config: {
       read: () => Promise<unknown>;
-    }
+    };
 
     site: {
       read: () => Promise<unknown>;
-    }
+    };
 
     themes: {
       upload: (data) => Promise<unknown>;
       activate: (name: string) => Promise<unknown>;
-    }
+    };
   }
 
   export = GhostAdminApi;

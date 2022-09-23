@@ -1,7 +1,11 @@
-import { FrontMatterCache } from 'obsidian';
+import { FrontMatterCache, TFile } from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
 
-export const OPublisherPostStatuses = ['draft', 'published', 'scheduled'] as const;
+export const OPublisherPostStatuses = [
+  'draft',
+  'published',
+  'scheduled',
+] as const;
 export type OPublisherPostStatus = typeof OPublisherPostStatuses[number];
 
 export interface OPublisherSettings {
@@ -24,15 +28,41 @@ export type OPublisherPublishAction = typeof OPublisherPublishActions[number];
 export interface OPublisherPostMetadata {
   tags: string[];
   excerpt: string;
-  slug?: string;
+  slug: string;
   status: OPublisherPostStatus;
 }
 
 export interface OPublisherRawPost {
+  /**
+   * The title
+   */
   title: string;
+  /**
+   * The file contents (without the YAML front matter)
+   */
   content: string;
+  /**
+   * Obsidian's front matter cache
+   */
   frontMatter: FrontMatterCache;
+  /**
+   * The parsed metadata
+   */
   metadata: OPublisherPostMetadata;
+  /**
+   * The action to perform for this file
+   */
   publishAction: OPublisherPublishAction;
+  /**
+   * Full path to the file on disk
+   */
   filePath: string;
+  /**
+   * Obsidian's representation of the file
+   */
+  file: TFile;
+}
+
+export interface OPublisherUpdatedPostDetails {
+  url: string;
 }
