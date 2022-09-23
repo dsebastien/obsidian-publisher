@@ -64,5 +64,6 @@ export interface OPublisherRawPost {
 }
 
 export interface OPublisherUpdatedPostDetails {
+  id: string;
   url: string;
 }

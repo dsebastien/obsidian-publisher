@@ -39,6 +39,12 @@ export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_EXCERPT = 'opublisher_excerpt';
 export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TAGS = 'opublisher_tags';
 
 /**
+ * Front matter key for Ghost post ID
+ */
+export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID =
+  'opublisher_ghost_id';
+
+/**
  * Front matter key for Ghost post URL
  */
 export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL =

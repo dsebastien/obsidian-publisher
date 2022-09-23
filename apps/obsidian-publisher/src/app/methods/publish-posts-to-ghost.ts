@@ -134,11 +134,15 @@ export const publishToGhost = async (
 
       log(`Created Ghost post`, 'debug', createdPost);
 
+      const postId = createdPost.id;
+      log(`Ghost post ID`, 'debug', postId);
+
       const postUrl = createdPost.url;
       log(`Ghost post URL`, 'debug', postUrl);
 
       // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
       retVal.set(post.metadata.slug, {
+        id: postId,
         url: postUrl,
       });
 

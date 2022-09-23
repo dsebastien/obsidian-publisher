@@ -24,6 +24,7 @@ import { isValidGhostConfiguration } from './is-valid-ghost-configuration';
 import {
   NOTICE_TIMEOUT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_EXCERPT,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_SLUG,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS,
@@ -295,6 +296,8 @@ export const publishPosts = async (
           if (post.publishAction === 'publish') {
             parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
               updatedPost.url;
+            parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
+              updatedPost.id;
 
             // Next calculate hash of the content
 
