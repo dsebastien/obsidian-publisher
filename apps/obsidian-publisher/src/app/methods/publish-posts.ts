@@ -209,6 +209,7 @@ export const publishPosts = async (
       try {
         await publishToGhost(posts, settings.ghostSettings);
       } catch (error: unknown) {
+
         new Notice(
           `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
           NOTICE_TIMEOUT

@@ -59,7 +59,7 @@ export class OPublisherPlugin extends Plugin {
       draft.automaticPublication = loadedSettings.automaticPublication;
       draft.ghostSettings = loadedSettings.ghostSettings;
     });
-    log('Settings loaded', 'debug');
+    log(`Settings loaded`, 'debug', loadedSettings);
   }
 
   /**
