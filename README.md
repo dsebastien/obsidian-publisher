@@ -11,6 +11,7 @@ Not ready for prime time...
 ### Ghost
 
 - Create a [custom integration](https://ghost.org/integrations/custom-integrations/) on Ghost.
+  - To be able to do this, your site MUST have at least the "CREATOR" tier, which is the first one to include "Build custom integrations"
 - Retrieve the **Admin API Key** and the **API URL**
 - Go to the settings of the plugin, enable Ghost and configure the settings
 - Add the Admin API Key, the API URL and the Base URL of your Ghost Website
@@ -149,7 +150,14 @@ Not ready for prime time...
 - Links handling
 - Image handling
 
-## Development
+## Contributing
+
+- Check out the project board: https://github.com/dsebastien/obsidian-publisher/projects/1
+- Check out the issues and look for those with `help wanted` or `good first issue`: https://github.com/dsebastien/obsidian-publisher/issues
+- Review and comment PRs
+- Follow the development guidelines in the next section
+
+## Development environment
 
 - Create a test Obsidian vault to avoid losing data while testing the plugin
 - Make sure that the safe mode is disabled
@@ -162,12 +170,6 @@ Not ready for prime time...
   - This will generate files under dist/apps/obsidian-publisher
   - The output will include a `.hotreload` file to let the Hot-Reload Obsidian plugin know that the plugin should be reloaded when files change
   - This will also copy the output to the $OBSIDIAN_VAULT_LOCATION folder
-
-## Contributing
-
-- Check out the project board: https://github.com/dsebastien/obsidian-publisher/projects/1
-- Check out the issues and look for those with `help wanted` or `good first issue`: https://github.com/dsebastien/obsidian-publisher/issues
-- Review and comment PRs
 
 ## Dependencies
 

@@ -32,12 +32,12 @@ export const publishPosts = async (
   settings: OPublisherSettings
 ) => {
   if (!settings.ghostSettings.enabled) {
-    log('Ghost publishing disabled', 'debug');
+    log(`${LOG_PREFIX} Ghost publishing disabled`, 'debug');
     return;
   }
 
   log(
-    'Inspecting all the files in the vault to identify those that need to be published',
+    `${LOG_PREFIX} Inspecting all the files in the vault to identify those that need to be published`,
     'debug'
   );
   // If some mandatory information can't be found, then we skip the file
@@ -47,35 +47,35 @@ export const publishPosts = async (
 
   for (const file of files) {
     log(LOG_SEPARATOR, 'debug');
-    log(`Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
+    log(`${LOG_PREFIX} Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
 
     const frontMatter = metadataCache.getFileCache(file)?.frontmatter;
     if (!frontMatter) {
-      log(`Ignoring file as it does not contain YAML front matter`, 'debug');
+      log(`${LOG_PREFIX} Ignoring file as it does not contain YAML front matter`, 'debug');
       continue;
     }
-    //log('Front matter:', 'debug', JSON.stringify(frontMatter));
+    //log(`${LOG_PREFIX} Front matter:`, 'debug', JSON.stringify(frontMatter));
 
-    log('Checking the post status', 'debug');
+    log(`${LOG_PREFIX} Checking the post status`, 'debug');
     const status = parseFrontMatterEntry(frontMatter, 'opublisher_status');
     if (!status) {
       log(
-        `Ignoring file as the YAML front matter does not include the mandatory opublisher_status property`,
+        `${LOG_PREFIX} Ignoring file as the YAML front matter does not include the mandatory opublisher_status property`,
         'debug'
       );
       continue;
     } else if (!isValidOPublisherPostStatus(status)) {
       continue;
     } else {
-      log(`Valid post status found`, 'debug');
+      log(`${LOG_PREFIX} Valid post status found`, 'debug');
     }
 
     let content = await vault.cachedRead(file);
     content = stripYamlFrontMatter(content);
-    log('Contents:', 'debug', content);
+    log(`${LOG_PREFIX} Contents`, 'debug', content);
 
     let title = file.basename;
-    log('Title', 'debug', title);
+    log(`${LOG_PREFIX} Title`, 'debug', title);
 
     // Check for title override
     const titleOverride = parseFrontMatterEntry(
@@ -84,11 +84,11 @@ export const publishPosts = async (
     );
     if (titleOverride && typeof titleOverride === 'string') {
       // Only accept title override if it is a string
-      log('Title override:', 'debug', titleOverride);
+      log(`${LOG_PREFIX} Title override`, 'debug', titleOverride);
       title = titleOverride;
     }
 
-    log('Checking the post slug', 'debug');
+    log(`${LOG_PREFIX} Checking the post slug`, 'debug');
     // WARNING: Important to turn the value to undefined instead of null here
     const slug: string | undefined =
       parseFrontMatterEntry(frontMatter, 'opublisher_slug') ?? undefined;
@@ -99,13 +99,13 @@ export const publishPosts = async (
       );
       continue;
     } else {
-      log(`Valid slug found`, 'debug');
+      log(`${LOG_PREFIX} Valid slug found`, 'debug');
     }
 
     let tags: string[] = parseFrontMatterTags(frontMatter) ?? [];
     // Remove the '#' of each tag. We just need their name
     tags = tags.map((orig) => orig.replace('#', ''));
-    log('Tags:', 'debug', tags);
+    log(`${LOG_PREFIX} Tags`, 'debug', tags);
 
     // Check for tags override
     const tagsOverride: string[] | null = parseFrontMatterStringArray(
@@ -114,7 +114,7 @@ export const publishPosts = async (
       true
     );
     if (tagsOverride) {
-      log('Tags override:', 'debug', tagsOverride);
+      log(`${LOG_PREFIX} Tags override`, 'debug', tagsOverride);
       tags = tagsOverride;
     }
 
@@ -124,7 +124,7 @@ export const publishPosts = async (
       // Make sure that the excerpt is always a string
       excerpt = '';
     }
-    log('Excerpt:', 'debug', excerpt);
+    log(`${LOG_PREFIX} Excerpt`, 'debug', excerpt);
 
     const publishAction: OPublisherPublishAction = 'publish';
 
@@ -144,14 +144,14 @@ export const publishPosts = async (
 
     if (publishAction === 'publish') {
       log(
-        `Found a note to publish: ${file.basename} (Path: ${file.path})`,
+        `${LOG_PREFIX} Found a note to publish: ${file.basename} (Path: ${file.path})`,
         'debug',
         postToPublish
       );
     }
 
     posts.push(postToPublish);
-    log('Added post to publish queue:', 'debug', postToPublish);
+    log(`${LOG_PREFIX} Added post to publish queue`, 'debug', postToPublish);
     log(LOG_SEPARATOR, 'debug');
   }
 
@@ -209,7 +209,6 @@ export const publishPosts = async (
       try {
         await publishToGhost(posts, settings.ghostSettings);
       } catch (error: unknown) {
-
         new Notice(
           `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
           NOTICE_TIMEOUT

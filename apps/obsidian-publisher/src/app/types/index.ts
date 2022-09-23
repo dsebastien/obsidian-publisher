@@ -1,6 +1,8 @@
 import { FrontMatterCache } from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
-import { OPublisherPostStatus } from '../methods/is-valid-opublisher-post-status';
+
+export const OPublisherPostStatuses = ['draft', 'published', 'scheduled'] as const;
+export type OPublisherPostStatus = typeof OPublisherPostStatuses[number];
 
 export interface OPublisherSettings {
   automaticPublication: boolean;

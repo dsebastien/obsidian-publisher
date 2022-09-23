@@ -1,19 +1,14 @@
-import { sign } from 'jsonwebtoken';
-import { Notice, request } from 'obsidian';
-import { marked } from 'marked';
-
-import { OPublisherRawPost } from '../types';
-import { log } from '../utils/log';
-import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
 import {
-  GHOST_ADMIN_API_PATH,
-  GHOST_API_VERSION,
-  GHOST_POSTS_ENDPOINT,
-  GhostPostCreationResponse,
-  GhostPostWrapper,
-} from '../types/ghost-api';
-import { delay } from '../utils/delay';
-import { DELAY_BETWEEN_ACTIONS, NOTICE_TIMEOUT } from '../constants';
+  Notice, request,
+} from 'obsidian';
+import {marked} from 'marked';
+import GhostAdminApi = require("@tryghost/admin-api");
+import {OPublisherRawPost} from '../types';
+import {OPublisherGhostSettings} from '../types/opublisher-ghost-settings.intf';
+import {delay} from '../utils/delay';
+import {DELAY_BETWEEN_ACTIONS, GHOST_API_VERSION, NOTICE_TIMEOUT} from '../constants';
+import {log, LOG_PREFIX} from "../utils/log";
+import {GhostAdminApiMakeRequestOptions, GhostPost} from "@tryghost/admin-api";
 
 /**
  * Publish the provided posts to Ghost.
@@ -31,14 +26,56 @@ export const publishToGhost = async (
   );
 
   // Extract the id and secret from the Admin token
-  const [keyid, secret] = settings.adminToken.split(':');
 
   // Create the API token
-  const apiToken = sign({}, Buffer.from(secret, 'hex'), {
-    keyid,
-    algorithm: 'HS256',
-    expiresIn: '5m',
-    audience: `/admin/`,
+  // const apiToken = sign({}, Buffer.from(secret, 'hex'), {
+  //   keyid,
+  //   algorithm: 'HS256',
+  //   expiresIn: '5m',
+  //   audience: `/admin/`,
+  // });
+
+  const ghostApi = new GhostAdminApi({
+    url: settings.apiUrl,
+    version: GHOST_API_VERSION,
+    key: settings.adminToken,
+    makeRequest: async (options: GhostAdminApiMakeRequestOptions) => {
+      log(`${LOG_PREFIX} Sending a request to Ghost`, 'debug', options);
+
+      const requestParameters = options.params;
+
+      // Add query parameters to construct the final requestUrl
+      // Part of the code below is taken directly from the official client: https://github.com/TryGhost/SDK/blob/main/packages/admin-api/lib/admin-api.js
+      const requestUrl = options.url + '?' + Object.keys(requestParameters).reduce((parts, key) => {
+        const val = encodeURIComponent([].concat(requestParameters[key]).join(','));
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        return parts.concat(`${key}=${val}`);
+      }, []).join('&');
+
+      log(`${LOG_PREFIX} Request URL`, 'debug', requestUrl);
+      log(`${LOG_PREFIX} Data`, 'debug', options.data);
+      log(`${LOG_PREFIX} Headers`, 'debug', options.headers);
+
+      try {
+        const response = await request({
+          url: requestUrl,
+          method: options.method,
+          headers: options.headers,
+          contentType: 'application/json; charset=utf-8',
+          body: JSON.stringify(options.data),
+          throw: true,
+        });
+
+        // Uncomment to see everything that we get back
+        //log('${LOG_PREFIX} Response', 'debug', response);
+
+        return JSON.parse(response);
+      } catch (error: unknown) {
+        log(`${LOG_PREFIX} Error`, 'error', error);
+        throw error;
+      }
+    }
   });
 
   /**
@@ -53,51 +90,40 @@ export const publishToGhost = async (
     );
 
     // Temporary (will later be rewritten as the content gets processed (e.g., for embeds)
+    // TODO process the images, links, etc
     const postProcessedContent = post.content;
+    const postProcessedContentAsHtml = marked(postProcessedContent, {
+        // FIXME define baseUrl for links
+      });
 
-    const ghostPost: GhostPostWrapper = createGhostPost(
-      post,
-      postProcessedContent
-    );
+    const ghostPost: GhostPost = createGhostPost(post, postProcessedContentAsHtml);
 
-    const response = await request({
-      url: `${settings.apiUrl}/${GHOST_ADMIN_API_PATH}/${GHOST_POSTS_ENDPOINT}/?source=html`,
-      method: 'POST',
-      contentType: 'application/json',
-      headers: {
-        'Accept-Version': GHOST_API_VERSION,
-        Authorization: `Ghost ${apiToken}`,
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify(ghostPost),
-    });
+    try {
+      const createdPost = await ghostApi.posts.add(ghostPost, {
+        source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
+      });
 
-    // Parse the response
-    const responseAsJSON: GhostPostCreationResponse = JSON.parse(response);
+      log(`${LOG_PREFIX} Created Ghost post`, 'debug', createdPost);
 
-    // Next: inspect call results
-    // And extract relevant metadata (e.g., id, url, etc)
-    if (responseAsJSON.posts) {
+      const postUrl = createdPost.url;
+      log(`${LOG_PREFIX} Ghost post URL`, 'debug', postUrl);
+
+
       new Notice(
-        `"${responseAsJSON?.posts?.[0]?.title}" (${post.filePath}) has been published successfully!`,
-        NOTICE_TIMEOUT
-      );
-    } else {
-      new Notice(
-        `Failed to publish the post. Error: ${
-          responseAsJSON.errors![0].context || responseAsJSON.errors![0].message
-        }`,
-        NOTICE_TIMEOUT
-      );
-      new Notice(
-        `Error details: ${responseAsJSON.errors![0]?.details[0].message} - ${
-          responseAsJSON.errors![0]?.details[0].params.allowedValues
-        }`,
-        NOTICE_TIMEOUT
-      );
+          `"${createdPost.title}" (${post.filePath}) has been published successfully!`,
+          NOTICE_TIMEOUT
+        );
+
+      // Next: inspect call results
+      // And extract relevant metadata (e.g., id, url, etc)
+
+    } catch (error: unknown) {
+      log('Ghost publication error', 'debug', error);
+        new Notice(
+          `Failed to publish the post. Error: ${error}`,
+          NOTICE_TIMEOUT
+        );
     }
-
-    log('Ghost publication result:', 'debug', response);
 
     // We delay the processing to avoid hitting rate limits
     await delay(DELAY_BETWEEN_ACTIONS);
@@ -107,37 +133,36 @@ export const publishToGhost = async (
   return 0;
 };
 
-// TODO move to separate file
-const createGhostPost = (
+export const createGhostPost = (
   post: OPublisherRawPost,
-  postProcessedContent: string
-): GhostPostWrapper => ({
-  posts: [
-    {
-      slug: post.metadata.slug,
-      tags: post.metadata.tags,
-      title: post.title,
-      og_title: post.title,
-      meta_title: post.title,
-      twitter_title: post.title,
-      meta_description: post.metadata.excerpt,
-      og_description: post.metadata.excerpt,
-      twitter_description: post.metadata.excerpt,
-      excerpt: post.metadata.excerpt,
-      custom_excerpt: post.metadata.excerpt,
-      status: post.metadata.status,
-      email_only: false,
-      featured: false,
-      visibility: 'public',
-      html: marked(postProcessedContent, {
-        // TODO define baseUrl for links
-      }),
-      canonical_url: undefined,
-      og_image: undefined,
-      published_at: undefined,
-      feature_image: undefined,
-      feature_image_alt: undefined,
-      feature_image_caption: undefined,
-    },
-  ],
+  htmlContent: string,
+): GhostPost => ({
+  slug: post.metadata.slug,
+  tags: post.metadata.tags,
+  title: post.title,
+  og_title: post.title,
+  meta_title: post.title,
+  twitter_title: post.title,
+  meta_description: post.metadata.excerpt,
+  og_description: post.metadata.excerpt,
+  twitter_description: post.metadata.excerpt,
+  excerpt: post.metadata.excerpt,
+  custom_excerpt: post.metadata.excerpt,
+  status: post.metadata.status,
+  email_only: false,
+  featured: false,
+  visibility: 'public',
+  html: htmlContent,
+  canonical_url: undefined,
+  frontmatter: undefined,
+  published_at: undefined,
+  og_image: undefined,
+  feature_image: undefined,
+  feature_image_alt: undefined,
+  feature_image_caption: undefined,
+  twitter_image: undefined,
+  codeinjection_foot: undefined,
+  codeinjection_head: undefined,
+  custom_template: undefined,
+  email_subject: undefined,
 });

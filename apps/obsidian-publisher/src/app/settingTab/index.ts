@@ -52,6 +52,7 @@ export class OPublisherSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.ghostSettings.apiUrl)
         .onChange(async (value) => {
           // Make sure there is no ending slash and no whitespace at the end
+          // Otherwise the Ghost Admin API client will fail
           const newValue = stripTrailingSlash(value.trim());
           log('Ghost site API URL set to: ' + newValue, 'debug');
 
