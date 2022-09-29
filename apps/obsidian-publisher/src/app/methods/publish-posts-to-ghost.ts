@@ -5,6 +5,7 @@ import { OPublisherRawPost, OPublisherUpdatedPostDetails } from '../types';
 import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
 import { delay } from '../utils/delay';
 import {
+  DEBUG_TRACE_GHOST_PUBLISHING,
   DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST,
   DELAY_BETWEEN_ACTIONS,
   GHOST_API_VERSION,
@@ -21,7 +22,8 @@ import { mapRawPostToGhostPost } from './map-raw-post-to-ghost-post';
  * Publish the provided posts to Ghost.
  * Assumes that the configuration has been validated already!
  * @param posts the posts to publish
- * @param settings
+ * @param settings the plugin configuration for Ghost
+ * @returns a Map of updated posts indexed by post slug (which must be unique by design)
  */
 export const publishToGhost = async (
   posts: OPublisherRawPost[],
@@ -31,16 +33,6 @@ export const publishToGhost = async (
     `Publishing ${posts.length} post(s) to Ghost Website (${settings.apiUrl})`,
     'info'
   );
-
-  // Extract the id and secret from the Admin token
-
-  // Create the API token
-  // const apiToken = sign({}, Buffer.from(secret, 'hex'), {
-  //   keyid,
-  //   algorithm: 'HS256',
-  //   expiresIn: '5m',
-  //   audience: `/admin/`,
-  // });
 
   const ghostApi = new GhostAdminApi({
     url: settings.apiUrl,
@@ -107,7 +99,9 @@ export const publishToGhost = async (
    */
   let currentPost = 1;
   for (const post of posts) {
-    log(`Publishing post ${post.title} to Ghost`, 'debug');
+    if (DEBUG_TRACE_GHOST_PUBLISHING) {
+      log(`Publishing post ${post.title} to Ghost`, 'debug');
+    }
     new Notice(
       `Publishing post ${currentPost++}/${posts.length}`,
       NOTICE_TIMEOUT
@@ -132,13 +126,19 @@ export const publishToGhost = async (
         source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
       });
 
-      log(`Created Ghost post`, 'debug', createdPost);
+      if (DEBUG_TRACE_GHOST_PUBLISHING) {
+        log(`Created Ghost post`, 'debug', createdPost);
+      }
 
       const postId = createdPost.id;
-      log(`Ghost post ID`, 'debug', postId);
+      if (DEBUG_TRACE_GHOST_PUBLISHING) {
+        log(`Ghost post ID`, 'debug', postId);
+      }
 
       const postUrl = createdPost.url;
-      log(`Ghost post URL`, 'debug', postUrl);
+      if (DEBUG_TRACE_GHOST_PUBLISHING) {
+        log(`Ghost post URL`, 'debug', postUrl);
+      }
 
       // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
       retVal.set(post.metadata.slug, {

@@ -51,6 +51,23 @@ export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL =
   'opublisher_ghost_url';
 
 /**
+ * Front matter key for note hash
+ */
+export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH = 'opublisher_hash';
+
+/**
  * Whether to trace HTTP requests to Ghost
  */
 export const DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST = false;
+/**
+ * Whether to trace the Ghost publishing process
+ */
+export const DEBUG_TRACE_GHOST_PUBLISHING = false;
+/**
+ * Whether to trace the publishing preparation process
+ */
+export const DEBUG_TRACE_PUBLISHING_PREPARATION = false;
+/**
+ * Whether to trace the handling of publishing results (e.g., update of notes metadata)
+ */
+export const DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING = true;

@@ -1,10 +1,10 @@
 {
-  "id": "obsidian-publisher",
-  "name": "Publisher",
-  "minAppVersion": "0.14.8",
-  "description": "Easily publish your content",
-  "author": "@dsebastien <sebastien@developassion.be>",
-  "authorUrl": "https://dsebastien.net",
-  "isDesktopOnly": false,
-  "version": "1.0.0"
+	"id": "obsidian-publisher",
+	"name": "Publisher",
+	"minAppVersion": "0.14.8",
+	"description": "Easily publish your content",
+	"author": "@dsebastien <sebastien@developassion.be>",
+	"authorUrl": "https://dsebastien.net",
+	"isDesktopOnly": false,
+	"version": "1.0.0"
 }

@@ -7,6 +7,9 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const matter = require('gray-matter');
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const hash = require('object-hash');
+
 import {
   MetadataCache,
   Notice,
@@ -30,8 +33,13 @@ import {
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TAGS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TITLE,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH,
+  DEBUG_TRACE_GHOST_PUBLISHING,
+  DEBUG_TRACE_PUBLISHING_PREPARATION,
+  DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
 } from '../constants';
 import { assertUnreachable } from '../utils/assert-unreachable.fn';
+import produce from 'immer';
 
 /**
  * Identify the posts to publish, and trigger their publication based on the settings and metadata
@@ -45,55 +53,74 @@ export const publishPosts = async (
   settings: OPublisherSettings
 ) => {
   if (!settings.ghostSettings.enabled) {
-    log(`Ghost publishing disabled`, 'debug');
+    if (DEBUG_TRACE_GHOST_PUBLISHING) {
+      log(`Ghost publishing disabled`, 'debug');
+    }
     return;
   }
 
-  log(
-    `${LOG_PREFIX} Inspecting all the files in the vault to identify those that need to be published`,
-    'debug'
-  );
+  if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+    log(
+      `${LOG_PREFIX} Inspecting all the files in the vault to identify those that need to be published`,
+      'debug'
+    );
+  }
+
   // If some mandatory information can't be found, then we skip the file
   // Mandatory: opublisher_status, opublisher_slug
   const files = vault.getMarkdownFiles();
   const posts: OPublisherRawPost[] = [];
 
   for (const file of files) {
-    log(LOG_SEPARATOR, 'debug');
-    log(`Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(LOG_SEPARATOR, 'debug');
+      log(`Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
+    }
 
     // FIXME use matter to read the YAML metadata and explore it instead of Obsidian's cache
     const frontMatter = metadataCache.getFileCache(file)?.frontmatter;
     if (!frontMatter) {
-      log(`Ignoring file as it does not contain YAML front matter`, 'debug');
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Ignoring file as it does not contain YAML front matter`, 'debug');
+      }
       continue;
     }
 
-    log(`Checking the post status`, 'debug');
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Checking the post status`, 'debug');
+    }
     const status = parseFrontMatterEntry(
       frontMatter,
       OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS
     );
     if (!status) {
-      log(
-        `${LOG_PREFIX} Ignoring file as the YAML front matter does not include the mandatory '${OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS}' property`,
-        'debug'
-      );
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(
+          `${LOG_PREFIX} Ignoring file as the YAML front matter does not include the mandatory '${OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS}' property`,
+          'debug'
+        );
+      }
       continue;
     } else if (!isValidOPublisherPostStatus(status)) {
       continue;
     } else {
-      log(`Valid post status found`, 'debug');
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Valid post status found`, 'debug');
+      }
     }
 
     // Read from disk to avoid working with stale data
     let content = await vault.read(file);
 
     content = stripYamlFrontMatter(content);
-    log(`Contents`, 'debug', content);
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Contents`, 'debug', content);
+    }
 
     let title = file.basename;
-    log(`Title`, 'debug', title);
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Title`, 'debug', title);
+    }
 
     // Check for title override
     const titleOverride = parseFrontMatterEntry(
@@ -102,11 +129,15 @@ export const publishPosts = async (
     );
     if (titleOverride && typeof titleOverride === 'string') {
       // Only accept title override if it is a string
-      log(`Title override`, 'debug', titleOverride);
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Title override`, 'debug', titleOverride);
+      }
       title = titleOverride;
     }
 
-    log(`Checking the post slug`, 'debug');
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Checking the post slug`, 'debug');
+    }
     // WARNING: Important to turn the value to undefined instead of null here
     const slug: string | undefined =
       parseFrontMatterEntry(
@@ -126,13 +157,17 @@ export const publishPosts = async (
       );
       continue;
     } else {
-      log(`Valid slug found`, 'debug');
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Valid slug found`, 'debug');
+      }
     }
 
     let tags: string[] = parseFrontMatterTags(frontMatter) ?? [];
     // Remove the '#' of each tag. We just need their name
     tags = tags.map((orig) => orig.replace('#', ''));
-    log(`Tags`, 'debug', tags);
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Tags`, 'debug', tags);
+    }
 
     // Check for tags override
     const tagsOverride: string[] | null = parseFrontMatterStringArray(
@@ -141,7 +176,9 @@ export const publishPosts = async (
       true
     );
     if (tagsOverride) {
-      log(`Tags override`, 'debug', tagsOverride);
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Tags override`, 'debug', tagsOverride);
+      }
       tags = tagsOverride;
     }
 
@@ -154,14 +191,18 @@ export const publishPosts = async (
       // Make sure that the excerpt is always a string
       excerpt = '';
     }
-    log(`Excerpt`, 'debug', excerpt);
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Excerpt`, 'debug', excerpt);
+    }
 
     const ghostPostUrl: string | undefined =
       parseFrontMatterEntry(
         frontMatter,
         OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL
       ) || '';
-    log(`Ghost post URL`, 'debug', ghostPostUrl);
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Ghost post URL`, 'debug', ghostPostUrl);
+    }
 
     // By default, we publish
     let actionToPerform: OPublisherPublishAction = 'publish';
@@ -187,33 +228,45 @@ export const publishPosts = async (
 
     switch (actionToPerform) {
       case 'publish':
-        log(
-          `${LOG_PREFIX} Found a note to publish: ${file.basename} (Path: ${file.path})`,
-          'debug',
-          postToPublishOrUpdate
-        );
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log(
+            `${LOG_PREFIX} Found a note to publish: ${file.basename} (Path: ${file.path})`,
+            'debug',
+            postToPublishOrUpdate
+          );
+        }
+        posts.push(postToPublishOrUpdate);
         break;
       case 'update':
-        log(
-          `${LOG_PREFIX} Found a note to update (if needed): ${file.basename} (Path: ${file.path})`,
-          'debug',
-          postToPublishOrUpdate
-        );
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log(
+            `${LOG_PREFIX} Found a potential note to update: ${file.basename} (Path: ${file.path})`,
+            'debug',
+            postToPublishOrUpdate
+          );
+        }
 
         // FIXME implement
         // Make sure that the update is actually needed
         // Otherwise continue
         // To check: compare the hash to the content
         // For now we simply skip those as we don't handle the scenario yet
+        // 1) retrieve the hash (skip if not found and warn)
+        // 2) calculate the new hash
+        // 3) compare the values
+        // 4) if different: add to list of posts to update
+        posts.push(postToPublishOrUpdate);
+
         continue;
       //break;
       default:
         assertUnreachable(actionToPerform);
     }
 
-    posts.push(postToPublishOrUpdate);
-    log(`Added post to publish queue`, 'debug', postToPublishOrUpdate);
-    log(LOG_SEPARATOR, 'debug');
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Added post to publish queue`, 'debug', postToPublishOrUpdate);
+      log(LOG_SEPARATOR, 'debug');
+    }
   }
 
   if (posts.length === 0) {
@@ -224,7 +277,9 @@ export const publishPosts = async (
     return;
   }
 
-  log(`Performing validations before publishing`, 'debug');
+  if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+    log(`Performing validations before publishing`, 'debug');
+  }
 
   for (const post of posts) {
     // Reject notes with identical slugs
@@ -273,53 +328,91 @@ export const publishPosts = async (
           settings.ghostSettings
         );
 
-        log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
+        }
         for (const post of posts) {
           const updatedPost = ghostPublicationResults.get(post.metadata.slug);
           if (!updatedPost) {
             continue;
           }
 
-          log(`${LOG_SEPARATOR}`, 'debug');
-          log(
-            `Updating Ghost post metadata in Obsidian for ${post.title} (${post.filePath})`,
-            'debug'
-          );
-          log(`File path`, 'debug', post.filePath);
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`${LOG_SEPARATOR}`, 'debug');
+            log(
+              `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
+              'debug'
+            );
+            log(`File path`, 'debug', post.filePath);
+          }
 
           // Read from disk to avoid working with stale data
           const updatedFile = await vault.read(post.file);
-          //const updatedContent = stripYamlFrontMatter(updatedFile);
           const parsedFile = matter(updatedFile);
-          log(`Content`, 'debug', parsedFile.content);
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`Content`, 'debug', parsedFile.content);
+          }
 
           if (post.publishAction === 'publish') {
+            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+              log(`Saving the post ID and URL`, 'debug');
+            }
             parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
               updatedPost.url;
             parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
               updatedPost.id;
+            // FIXME if this is not defined at this point, then the line that sets the actual value does not work for some reason
+            parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] = "<temporary>";
+          }
 
-            // Next calculate hash of the content
+          const dataToHash = produce<{data: { [key: string]: any }; content: string; excerpt?: string}>(
+            {data: parsedFile.data, content: parsedFile.content, excerpt: parsedFile.excerpt}, // We only extract the parts we care about from the parsed file
+            (draft) => {
+              // The hash is excluded from the hash calculation
+              delete draft.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH];
+            }
+          );
 
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`Data to hash`, 'debug', dataToHash);
+          }
+
+          // https://www.npmjs.com/package/object-hash
+          // hash((data (metadata without the hash if present) + content + excerpt))
+          const newHash = hash(dataToHash);
+
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`New note hash`, 'debug', newHash);
+            log(`Storing the new hash`, 'debug');
+          }
+
+          // Keep the new hash
+          parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] = newHash;
+          log(`Stored hash`, 'debug', parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH]);
+
+          // if action = update and NO hash => warn + skip ==> think about what the user could or should do
+
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
             log(`Post metadata before`, 'debug', post.frontMatter);
             log(`Post metadata after`, 'debug', parsedFile.data);
 
             log(`Post file contents before`, 'debug', parsedFile.data);
+          }
+          const updatedFileContents = matter.stringify(
+            parsedFile,
+            parsedFile.data
+          );
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`Post file contents after`, 'debug', updatedFileContents);
+          }
 
-            const updatedFileContents = matter.stringify(
-              parsedFile,
-              parsedFile.data
-            );
-            log(`Updated post`, 'debug', updatedFileContents);
-
-            try {
-              await vault.modify(post.file, updatedFileContents);
-              log(
-                `Note updated successfully. It now includes the Ghost post metadata`,
-                'debug',
-                updatedFileContents
-              );
-            } catch (error: unknown) {
+          try {
+            await vault.modify(post.file, updatedFileContents);
+            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+              log(`Note updated successfully`, 'debug', updatedFileContents);
+            }
+          } catch (error: unknown) {
+            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
               log(`Failed to updated the note`, 'error', error);
             }
           }
