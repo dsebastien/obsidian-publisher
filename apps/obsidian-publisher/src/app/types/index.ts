@@ -34,6 +34,10 @@ export interface OPublisherPostMetadata {
 
 export interface OPublisherRawPost {
   /**
+   * The id
+   */
+  id?: string | undefined;
+  /**
    * The title
    */
   title: string;
@@ -61,9 +65,15 @@ export interface OPublisherRawPost {
    * Obsidian's representation of the file
    */
   file: TFile;
+  /**
+   * Last known update timestamp
+   */
+  updated_at?: string | undefined;
+  // TODO add created_at and published_at
 }
 
 export interface OPublisherUpdatedPostDetails {
   id: string;
   url: string;
+  updated_at: string;
 }

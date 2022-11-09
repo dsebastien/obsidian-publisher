@@ -37,6 +37,7 @@ import {
   DEBUG_TRACE_GHOST_PUBLISHING,
   DEBUG_TRACE_PUBLISHING_PREPARATION,
   DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT,
 } from '../constants';
 import { assertUnreachable } from '../utils/assert-unreachable.fn';
 import produce from 'immer';
@@ -77,7 +78,7 @@ export const publishPosts = async (
       log(`Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
     }
 
-    // FIXME use matter to read the YAML metadata and explore it instead of Obsidian's cache
+    // TODO use matter to read the YAML metadata and explore it instead of Obsidian's cache
     const frontMatter = metadataCache.getFileCache(file)?.frontmatter;
     if (!frontMatter) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -204,10 +205,35 @@ export const publishPosts = async (
       log(`Ghost post URL`, 'debug', ghostPostUrl);
     }
 
+    const ghostPostId: string | undefined =
+      parseFrontMatterEntry(
+        frontMatter,
+        OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID
+      ) || '';
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Ghost post ID`, 'debug', ghostPostId);
+    }
+
+    const ghostPostUpdatedAt: string | undefined =
+      parseFrontMatterEntry(
+        frontMatter,
+        OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT
+      ) || '';
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Ghost post updated at`, 'debug', ghostPostUpdatedAt);
+    }
+
     // By default, we publish
     let actionToPerform: OPublisherPublishAction = 'publish';
 
-    if (ghostPostUrl) {
+    if (ghostPostUrl && ghostPostId) {
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(
+          `The post has an ID and URL. It might need to be updated`,
+          'debug',
+          ghostPostId
+        );
+      }
       actionToPerform = 'update';
     }
 
@@ -226,6 +252,16 @@ export const publishPosts = async (
       file,
     };
 
+    // The id of the post only makes sense if the post was already published
+    if (ghostPostId) {
+      postToPublishOrUpdate.id = ghostPostId;
+    }
+
+    // The updated at field of the post only makes sense if the post was already published
+    if (ghostPostUpdatedAt) {
+      postToPublishOrUpdate.updated_at = ghostPostUpdatedAt;
+    }
+
     switch (actionToPerform) {
       case 'publish':
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -240,21 +276,13 @@ export const publishPosts = async (
       case 'update':
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
           log(
-            `${LOG_PREFIX} Found a potential note to update: ${file.basename} (Path: ${file.path})`,
+            `${LOG_PREFIX} Found a potential note to update: ${file.basename} (Path: ${file.path}). Verifying if it needs to be updated`,
             'debug',
             postToPublishOrUpdate
           );
         }
 
-        // FIXME implement
-        // Make sure that the update is actually needed
-        // Otherwise continue
-        // To check: compare the hash to the content
-        // For now we simply skip those as we don't handle the scenario yet
-        // 1) retrieve the hash (skip if not found and warn)
-        // 2) calculate the new hash
-        // 3) compare the values
-        // 4) if different: add to list of posts to update
+        // TODO Make sure that the update is actually needed: https://github.com/dsebastien/obsidian-publisher/issues/45
         posts.push(postToPublishOrUpdate);
 
         continue;
@@ -321,115 +349,129 @@ export const publishPosts = async (
   );
 
   if (settings.ghostSettings.enabled) {
-    if (isValidGhostConfiguration(settings.ghostSettings)) {
-      try {
-        const ghostPublicationResults = await publishToGhost(
-          posts,
-          settings.ghostSettings
-        );
-
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
-        }
-        for (const post of posts) {
-          const updatedPost = ghostPublicationResults.get(post.metadata.slug);
-          if (!updatedPost) {
-            continue;
-          }
-
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`${LOG_SEPARATOR}`, 'debug');
-            log(
-              `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
-              'debug'
-            );
-            log(`File path`, 'debug', post.filePath);
-          }
-
-          // Read from disk to avoid working with stale data
-          const updatedFile = await vault.read(post.file);
-          const parsedFile = matter(updatedFile);
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Content`, 'debug', parsedFile.content);
-          }
-
-          if (post.publishAction === 'publish') {
-            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-              log(`Saving the post ID and URL`, 'debug');
-            }
-            parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
-              updatedPost.url;
-            parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
-              updatedPost.id;
-            // FIXME if this is not defined at this point, then the line that sets the actual value does not work for some reason
-            parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] = "<temporary>";
-          }
-
-          const dataToHash = produce<{data: { [key: string]: any }; content: string; excerpt?: string}>(
-            {data: parsedFile.data, content: parsedFile.content, excerpt: parsedFile.excerpt}, // We only extract the parts we care about from the parsed file
-            (draft) => {
-              // The hash is excluded from the hash calculation
-              delete draft.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH];
-            }
-          );
-
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Data to hash`, 'debug', dataToHash);
-          }
-
-          // https://www.npmjs.com/package/object-hash
-          // hash((data (metadata without the hash if present) + content + excerpt))
-          const newHash = hash(dataToHash);
-
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`New note hash`, 'debug', newHash);
-            log(`Storing the new hash`, 'debug');
-          }
-
-          // Keep the new hash
-          parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] = newHash;
-          log(`Stored hash`, 'debug', parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH]);
-
-          // if action = update and NO hash => warn + skip ==> think about what the user could or should do
-
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Post metadata before`, 'debug', post.frontMatter);
-            log(`Post metadata after`, 'debug', parsedFile.data);
-
-            log(`Post file contents before`, 'debug', parsedFile.data);
-          }
-          const updatedFileContents = matter.stringify(
-            parsedFile,
-            parsedFile.data
-          );
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Post file contents after`, 'debug', updatedFileContents);
-          }
-
-          try {
-            await vault.modify(post.file, updatedFileContents);
-            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-              log(`Note updated successfully`, 'debug', updatedFileContents);
-            }
-          } catch (error: unknown) {
-            if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-              log(`Failed to updated the note`, 'error', error);
-            }
-          }
-        }
-      } catch (error: unknown) {
-        new Notice(
-          `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
-          NOTICE_TIMEOUT
-        );
-      }
-
-      return new Promise(() => 0);
-    } else {
+    if (!isValidGhostConfiguration(settings.ghostSettings)) {
       new Notice(
         `${LOG_PREFIX} The Ghost settings are invalid. Please fix the plugin configuration and try again`,
         NOTICE_TIMEOUT
       );
+      return;
     }
+    try {
+      const ghostPublicationResults = await publishToGhost(
+        posts,
+        settings.ghostSettings
+      );
+
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
+      }
+      for (const post of posts) {
+        const updatedPost = ghostPublicationResults.get(post.metadata.slug);
+        if (!updatedPost) {
+          continue;
+        }
+
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`${LOG_SEPARATOR}`, 'debug');
+          log(
+            `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
+            'debug'
+          );
+          log(`File path`, 'debug', post.filePath);
+        }
+
+        // Read from disk to avoid working with stale data
+        const updatedFile = await vault.read(post.file);
+        const parsedFile = matter(updatedFile);
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`New note contents`, 'debug', parsedFile.content);
+        }
+
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Saving the post ID, URL and last updated at`, 'debug');
+        }
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
+          updatedPost.url;
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
+          updatedPost.id;
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT] =
+          updatedPost.updated_at;
+        // FIXME if this is not defined at this point, then the line that sets the actual value does not work for some reason
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
+          '<temporary>';
+
+        const dataToHash = produce<{
+          data: { [key: string]: unknown };
+          content: string;
+          excerpt?: string;
+        }>(
+          {
+            data: parsedFile.data,
+            content: parsedFile.content,
+            excerpt: parsedFile.excerpt,
+          }, // We only extract the parts we care about from the parsed file
+          (draft) => {
+            // The hash is excluded from the hash calculation
+            delete draft.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH];
+          }
+        );
+
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Data to hash`, 'debug', dataToHash);
+        }
+
+        // https://www.npmjs.com/package/object-hash
+        // hash((data (metadata without the hash if present) + content + excerpt))
+        const newHash = hash(dataToHash);
+
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`New note hash`, 'debug', newHash);
+          log(`Storing the new hash`, 'debug');
+        }
+
+        // Keep the new hash
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
+          newHash;
+        log(
+          `Stored hash`,
+          'debug',
+          parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH]
+        );
+
+        // if action = update and NO hash => warn + skip ==> think about what the user could or should do
+
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Post metadata before`, 'debug', post.frontMatter);
+          log(`Post metadata after`, 'debug', parsedFile.data);
+
+          log(`Post file contents before`, 'debug', parsedFile.data);
+        }
+        const updatedFileContents = matter.stringify(
+          parsedFile,
+          parsedFile.data
+        );
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Post file contents after`, 'debug', updatedFileContents);
+        }
+
+        try {
+          await vault.modify(post.file, updatedFileContents);
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`Note updated successfully`, 'debug', updatedFileContents);
+          }
+        } catch (error: unknown) {
+          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+            log(`Failed to updated the note`, 'error', error);
+          }
+        }
+      }
+    } catch (error: unknown) {
+      new Notice(
+        `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
+        NOTICE_TIMEOUT
+      );
+    }
+
+    return new Promise(() => 0);
   }
 };

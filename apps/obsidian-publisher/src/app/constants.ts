@@ -51,6 +51,12 @@ export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL =
   'opublisher_ghost_url';
 
 /**
+ * Front matter key for Ghost post updated_at
+ */
+export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT =
+  'opublisher_ghost_updated_at';
+
+/**
  * Front matter key for note hash
  */
 export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH = 'opublisher_hash';

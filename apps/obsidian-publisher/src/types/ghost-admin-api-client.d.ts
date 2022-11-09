@@ -4,12 +4,14 @@
  * https://github.com/TryGhost/SDK/blob/main/packages/admin-api/lib/admin-api.js
  */
 declare module '@tryghost/admin-api' {
-  import type { AxiosResponse } from 'axios';
-
   /**
    * Ghost post object
    */
   export interface GhostPost {
+    /**
+     * Id of the post. Optional
+     */
+    id: string | undefined;
     /**
      * Title of the post. Mandatory.
      */
@@ -28,7 +30,9 @@ declare module '@tryghost/admin-api' {
     featured: boolean;
     status: 'draft' | 'published' | 'scheduled';
     visibility: GhostPostVisibility;
-    published_at?: string | null;
+    //published_at?: string | null;
+    //created_at?: string | undefined;
+    updated_at?: string | undefined;
     codeinjection_head?: string | null;
     codeinjection_foot?: string | null;
     custom_template?: string | null;
@@ -65,12 +69,18 @@ declare module '@tryghost/admin-api' {
     uuid: string;
     url: string;
     tags: GhostTag[];
+    updated_at: string;
     // authors
     // tiers
     // primary_author
     // primary_tag
     // email_segment
   };
+
+  /**
+   * Details we care about in the response of a Ghost post update
+   */
+  export type GhostPostUpdateResponse = GhostPostCreationResponse;
 
   export interface GhostTag {
     id: string;
@@ -106,7 +116,7 @@ declare module '@tryghost/admin-api' {
      */
     makeRequest?: (
       options: GhostAdminApiMakeRequestOptions
-    ) => Promise<unknown>; // TODO refine
+    ) => Promise<unknown>;
     /**
      * Replace the function used to generate tokens
      * @param key the key
@@ -171,7 +181,7 @@ declare module '@tryghost/admin-api' {
       edit: (
         data: Record<unknown>,
         queryParams: Record<unknown> = {}
-      ) => Promise<unknown>;
+      ) => Promise<GhostPostUpdateResponse>;
       del: (
         data: Record<unknown>,
         queryParams: Record<unknown> = {}

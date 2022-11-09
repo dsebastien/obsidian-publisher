@@ -10,6 +10,7 @@ export const mapRawPostToGhostPost = (
   post: OPublisherRawPost,
   htmlContent: string
 ): GhostPost => ({
+  id: post.id,
   slug: post.metadata.slug,
   tags: post.metadata.tags,
   title: post.title,
@@ -28,7 +29,7 @@ export const mapRawPostToGhostPost = (
   html: htmlContent,
   canonical_url: undefined,
   frontmatter: undefined,
-  published_at: undefined,
+  updated_at: post.updated_at,
   og_image: undefined,
   feature_image: undefined,
   feature_image_alt: undefined,

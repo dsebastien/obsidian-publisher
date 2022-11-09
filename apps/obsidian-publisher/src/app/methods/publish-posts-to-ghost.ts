@@ -17,11 +17,12 @@ import {
   GhostPost,
 } from '@tryghost/admin-api';
 import { mapRawPostToGhostPost } from './map-raw-post-to-ghost-post';
+import { assertUnreachable } from '../utils/assert-unreachable.fn';
 
 /**
  * Publish the provided posts to Ghost.
  * Assumes that the configuration has been validated already!
- * @param posts the posts to publish
+ * @param posts the posts to publish (or update)
  * @param settings the plugin configuration for Ghost
  * @returns a Map of updated posts indexed by post slug (which must be unique by design)
  */
@@ -38,6 +39,7 @@ export const publishToGhost = async (
     url: settings.apiUrl,
     version: GHOST_API_VERSION,
     key: settings.adminToken,
+    // TODO extract function to separate file
     makeRequest: async (options: GhostAdminApiMakeRequestOptions) => {
       if (DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST) {
         log(`Sending a request to Ghost`, 'debug', options);
@@ -107,8 +109,6 @@ export const publishToGhost = async (
       NOTICE_TIMEOUT
     );
 
-    // FIXME handle post update scenario
-
     // Temporary (will later be rewritten as the content gets processed (e.g., for embeds)
     // TODO process the images, links, etc
     const postProcessedContent = post.content;
@@ -121,44 +121,96 @@ export const publishToGhost = async (
       postProcessedContentAsHtml
     );
 
-    try {
-      const createdPost = await ghostApi.posts.add(ghostPost, {
-        source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
-      });
+    switch (post.publishAction) {
+      case 'publish':
+        try {
+          const createdPost = await ghostApi.posts.add(ghostPost, {
+            source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
+          });
 
-      if (DEBUG_TRACE_GHOST_PUBLISHING) {
-        log(`Created Ghost post`, 'debug', createdPost);
-      }
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Created Ghost post`, 'debug', createdPost);
+          }
 
-      const postId = createdPost.id;
-      if (DEBUG_TRACE_GHOST_PUBLISHING) {
-        log(`Ghost post ID`, 'debug', postId);
-      }
+          const postId = createdPost.id;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post ID`, 'debug', postId);
+          }
 
-      const postUrl = createdPost.url;
-      if (DEBUG_TRACE_GHOST_PUBLISHING) {
-        log(`Ghost post URL`, 'debug', postUrl);
-      }
+          const postUrl = createdPost.url;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post URL`, 'debug', postUrl);
+          }
 
-      // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
-      retVal.set(post.metadata.slug, {
-        id: postId,
-        url: postUrl,
-      });
+          const postUpdatedAt = createdPost.updated_at;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
+          }
 
-      new Notice(
-        `"${createdPost.title}" (${post.filePath}) has been published successfully!`,
-        NOTICE_TIMEOUT
-      );
+          // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
+          retVal.set(post.metadata.slug, {
+            id: postId,
+            url: postUrl,
+            updated_at: postUpdatedAt,
+          });
 
-      // Next: inspect call results
-      // And extract relevant metadata (e.g., id, url, etc)
-    } catch (error: unknown) {
-      log('Ghost publication error', 'debug', error);
-      new Notice(`Failed to publish the post. Error: ${error}`, NOTICE_TIMEOUT);
+          new Notice(
+            `"${createdPost.title}" (${post.filePath}) has been published successfully!`,
+            NOTICE_TIMEOUT
+          );
+        } catch (error: unknown) {
+          log('Ghost publication error', 'debug', error);
+          new Notice(
+            `Failed to publish the post. Error: ${error}`,
+            NOTICE_TIMEOUT
+          );
+        }
+        break;
+      case 'update':
+        try {
+          const updatedPost = await ghostApi.posts.edit(ghostPost, {
+            source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
+          });
+
+          const postId = updatedPost.id;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post ID`, 'debug', postId);
+          }
+
+          const postUrl = updatedPost.url;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post URL`, 'debug', postUrl);
+          }
+
+          const postUpdatedAt = updatedPost.updated_at;
+          if (DEBUG_TRACE_GHOST_PUBLISHING) {
+            log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
+          }
+
+          // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
+          retVal.set(post.metadata.slug, {
+            id: postId,
+            url: postUrl,
+            updated_at: postUpdatedAt,
+          });
+
+          new Notice(
+            `"${updatedPost.title}" (${post.filePath}) has been updated successfully!`,
+            NOTICE_TIMEOUT
+          );
+        } catch (error: unknown) {
+          log('Ghost publication error', 'debug', error);
+          new Notice(
+            `Failed to update the post. Error: ${error}`,
+            NOTICE_TIMEOUT
+          );
+        }
+        break;
+      default:
+        assertUnreachable(post.publishAction);
     }
 
-    // We delay the processing to avoid hitting rate limits
+    // We delay the processing to avoid hitting the rate limits of Ghost
     await delay(DELAY_BETWEEN_ACTIONS);
   }
 
