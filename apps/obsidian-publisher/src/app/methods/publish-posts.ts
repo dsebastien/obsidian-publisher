@@ -1,4 +1,5 @@
 import {
+  FileEmbed,
   OPublisherPublishAction,
   OPublisherRawPost,
   OPublisherSettings,
@@ -11,6 +12,8 @@ const matter = require('gray-matter');
 const hash = require('object-hash');
 
 import {
+  EmbedCache,
+  FileSystemAdapter,
   MetadataCache,
   Notice,
   parseFrontMatterEntry,
@@ -62,7 +65,7 @@ export const publishPosts = async (
 
   if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
     log(
-      `${LOG_PREFIX} Inspecting all the files in the vault to identify those that need to be published`,
+      `Inspecting all the files in the vault to identify those that need to be published`,
       'debug'
     );
   }
@@ -78,13 +81,64 @@ export const publishPosts = async (
       log(`Analyzing ${file.basename} (${file.path})`, 'debug'); // name: Test.md. basename: Test. extension: md
     }
 
+    const fileCache = metadataCache.getFileCache(file);
+
     // TODO use matter to read the YAML metadata and explore it instead of Obsidian's cache
-    const frontMatter = metadataCache.getFileCache(file)?.frontmatter;
+    const frontMatter = fileCache?.frontmatter;
     if (!frontMatter) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
         log(`Ignoring file as it does not contain YAML front matter`, 'debug');
       }
       continue;
+    }
+
+    const embedsMetadata =
+      fileCache && fileCache.embeds ? fileCache.embeds : ([] as EmbedCache[]);
+    const embeds: Map<string, FileEmbed> = new Map<string, FileEmbed>();
+
+    for (const embedMetadata of embedsMetadata) {
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log(`Loading embeds contents`, 'debug');
+      }
+
+      const matchingFile = vault.getFiles().find((value, _index, _obj) => {
+        let retVal = false;
+        if (value.path === embedMetadata.link) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log('Found the embed file: ', 'debug', value);
+          }
+          retVal = true;
+        }
+
+        return retVal;
+      });
+
+      if (!matchingFile) {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log('Could not find one of the embeds!', 'warn');
+        }
+        continue;
+      }
+
+      const embedContents = await vault.readBinary(matchingFile);
+
+      // We try to get a hold of the full file path. This works on desktop only
+      // Reference: https://github.com/dsebastien/obsidian-publisher/issues/49
+      let embedAbsoluteFilePath = null;
+      if (vault.adapter instanceof FileSystemAdapter) {
+        embedAbsoluteFilePath = vault.adapter.getFullPath(matchingFile.path);
+      }
+
+      embeds.set(embedMetadata.link, {
+        metadata: embedMetadata,
+        contents: embedContents,
+        filename: matchingFile.name,
+        absoluteFilePath: embedAbsoluteFilePath,
+      });
+    }
+
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`File embeds: `, 'debug', embeds);
     }
 
     if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -97,7 +151,7 @@ export const publishPosts = async (
     if (!status) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
         log(
-          `${LOG_PREFIX} Ignoring file as the YAML front matter does not include the mandatory '${OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS}' property`,
+          `Ignoring file as the YAML front matter does not include the mandatory '${OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS}' property`,
           'debug'
         );
       }
@@ -250,6 +304,7 @@ export const publishPosts = async (
       publishAction: actionToPerform,
       filePath: file.path,
       file,
+      embeds,
     };
 
     // The id of the post only makes sense if the post was already published
@@ -266,7 +321,7 @@ export const publishPosts = async (
       case 'publish':
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
           log(
-            `${LOG_PREFIX} Found a note to publish: ${file.basename} (Path: ${file.path})`,
+            `Found a note to publish: ${file.basename} (Path: ${file.path})`,
             'debug',
             postToPublishOrUpdate
           );
@@ -276,7 +331,7 @@ export const publishPosts = async (
       case 'update':
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
           log(
-            `${LOG_PREFIX} Found a potential note to update: ${file.basename} (Path: ${file.path}). Verifying if it needs to be updated`,
+            `Found a potential note to update: ${file.basename} (Path: ${file.path}). Verifying if it needs to be updated`,
             'debug',
             postToPublishOrUpdate
           );

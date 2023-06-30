@@ -1,4 +1,4 @@
-import { FrontMatterCache, TFile } from 'obsidian';
+import { EmbedCache, FrontMatterCache, TFile } from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
 
 export const OPublisherPostStatuses = [
@@ -71,6 +71,18 @@ export interface OPublisherRawPost {
    */
   updated_at?: string | undefined;
   // TODO add created_at and published_at
+
+  /**
+   * Embeds
+   */
+  embeds: Map<string, FileEmbed>;
+}
+
+export interface FileEmbed {
+  metadata: EmbedCache;
+  contents: ArrayBuffer;
+  filename: string;
+  absoluteFilePath: string | null;
 }
 
 export interface OPublisherUpdatedPostDetails {
