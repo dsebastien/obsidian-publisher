@@ -21,7 +21,7 @@
     "inlineSources": false,
     "isolatedModules": false,
     "jsx": "preserve",
-    "lib": ["es2018", "dom"],
+    "lib": ["es2022", "dom", "dom.iterable"],
     "listEmittedFiles": false,
     "listFiles": false,
     "module": "esnext",
