@@ -89,6 +89,15 @@ declare module '@tryghost/admin-api' {
     description: string | null;
   }
 
+  export interface GhostImageDetails {
+    url: string;
+    ref: string;
+  }
+
+  export interface GhostImageUploadResponse {
+    images: GhostImageDetails[];
+  }
+
   export interface GhostAdminApiOptions {
     /**
      * URL of the Ghost instance
@@ -135,17 +144,25 @@ declare module '@tryghost/admin-api' {
 
   export interface GhostAdminApiMediaUploadData {
     /**
-     * File path to a media file
+     * The path to the image that you want to upload.
+     * https://developer.mozilla.org/en-US/docs/Web/API/Blob
+     * https://developer.mozilla.org/en-US/docs/Web/API/File
      **/
-    file: string;
+    file: string | Buffer | URL;
     /**
-     * File path to a thumbnail file
+     * The page to the image that you want to use as thumbnail
      */
     thumbnail?: string;
     /**
      * Purpose of the file
      */
-    purpose?: string;
+    purpose?: 'image' | 'profile_image' | 'icon';
+    /**
+     * A reference or identifier for the image (e.g., original filename and path)
+     * Will be returned as-is in the API response.
+     * Useful for finding and replacing local image paths after uploads
+     */
+    ref?: string;
   }
 
   export type GhostAdminApiImageUploadData = GhostAdminApiMediaUploadData;
@@ -306,7 +323,7 @@ declare module '@tryghost/admin-api' {
     images: {
       upload: (
         data: GhostAdminApiImageUploadData | FormData
-      ) => Promise<unknown>;
+      ) => Promise<GhostImageUploadResponse>;
     };
 
     media: {
