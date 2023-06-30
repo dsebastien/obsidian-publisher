@@ -11,7 +11,7 @@ export const NOTICE_TIMEOUT = 5000;
 /**
  * The version of the Ghost API we have tested against
  */
-export const GHOST_API_VERSION = 'v5.15';
+export const GHOST_API_VERSION = 'v5.53';
 
 /**
  * Front matter key for post status
