@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, OPublisherSettings } from './types';
 import { publishPosts } from './methods/publish-posts';
 import { OPublisherSettingTab } from './settingTab';
@@ -31,7 +31,7 @@ export class OPublisherPlugin extends Plugin {
       id: 'publish',
       name: publishActionText,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      editorCallback: (_editor, _view: MarkdownView) => {
+      editorCallback: (_editor, _view) => {
         publishPosts(this.app.vault, this.app.metadataCache, this.settings);
       },
     });

@@ -21,7 +21,6 @@ export interface ESBuildExecutorOptions {
   main: string;
   sourceMap: boolean;
   tsConfig: string;
-  watchMode: boolean;
 }
 
 export default async function esbuildExecutor(
@@ -42,6 +41,7 @@ export default async function esbuildExecutor(
       },
       entryPoints: [options.main],
       bundle: true,
+      platform: 'node',
       external: [
         'obsidian',
         'electron',
@@ -69,7 +69,6 @@ export default async function esbuildExecutor(
         ...builtins,
       ],
       format: options.outputFormat,
-      watch: options.watchMode,
       target: options.outputTarget,
       logLevel: options.logLevel,
       sourcemap: options.sourceMap,
