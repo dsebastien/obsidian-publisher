@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: OPublisherSettings = {
     enabled: false,
     adminToken: '',
     apiUrl: '',
+    baseUrl: '',
   },
 };
 

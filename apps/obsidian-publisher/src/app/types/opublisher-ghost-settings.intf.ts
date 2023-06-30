@@ -11,6 +11,10 @@ export interface OPublisherGhostSettings {
    */
   apiUrl: string;
   /**
+   * Website base URL
+   */
+  baseUrl: string;
+  /**
    * Admin Token to use
    */
   adminToken: string;

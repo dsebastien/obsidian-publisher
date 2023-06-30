@@ -14,8 +14,14 @@ export const isValidGhostConfiguration = (
   // Assume the configuration is valid until proven otherwise
   let retVal = true;
 
-  log('Ghost Base URL:', 'debug', ghostSettings.apiUrl);
+  log('Ghost API URL:', 'debug', ghostSettings.apiUrl);
   if (!isValidUrl(ghostSettings.apiUrl)) {
+    log(`The Ghost API URL is invalid`, 'debug', ghostSettings.apiUrl);
+    retVal = false;
+  }
+
+  log('Ghost Base URL:', 'debug', ghostSettings.apiUrl);
+  if (!isValidUrl(ghostSettings.baseUrl)) {
     log(`The Ghost Base URL is invalid`, 'debug', ghostSettings.apiUrl);
     retVal = false;
   }
