@@ -78,6 +78,10 @@ export const DEBUG_TRACE_PUBLISHING_PREPARATION = false;
  */
 export const DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING = true;
 /**
+ * Regex that can be used to identify images
+ */
+export const IMAGE_REGEX = /(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)/gmi;
+/**
  * Regex that can be used to extract embedded images
  * Reference: https://help.obsidian.md/Advanced+topics/Accepted+file+formats
  */

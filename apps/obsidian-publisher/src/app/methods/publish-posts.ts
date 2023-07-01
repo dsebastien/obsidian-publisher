@@ -11,9 +11,11 @@ const matter = require('gray-matter');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const hash = require('object-hash');
 
+import {UploadApiResponse, v2 as cloudinary} from 'cloudinary';
+
 import {
   EmbedCache,
-  FileSystemAdapter,
+  FileSystemAdapter, getLinkpath,
   MetadataCache,
   Notice,
   parseFrontMatterEntry,
@@ -37,13 +39,13 @@ import {
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TAGS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TITLE,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH,
-  DEBUG_TRACE_GHOST_PUBLISHING,
   DEBUG_TRACE_PUBLISHING_PREPARATION,
   DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
-  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT, IMAGE_REGEX,
 } from '../constants';
 import { assertUnreachable } from '../utils/assert-unreachable.fn';
 import produce from 'immer';
+import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
 
 /**
  * Identify the posts to publish, and trigger their publication based on the settings and metadata
@@ -56,13 +58,6 @@ export const publishPosts = async (
   metadataCache: MetadataCache,
   settings: OPublisherSettings
 ) => {
-  if (!settings.ghostSettings.enabled) {
-    if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log(`Ghost publishing disabled`, 'debug');
-    }
-    return;
-  }
-
   if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
     log(
       `Inspecting all the files in the vault to identify those that need to be published`,
@@ -96,28 +91,26 @@ export const publishPosts = async (
       fileCache && fileCache.embeds ? fileCache.embeds : ([] as EmbedCache[]);
     const embeds: Map<string, FileEmbed> = new Map<string, FileEmbed>();
 
+    // Keep track of (image) embeds that were successfully uploaded
+    const successfullyUploadedEmbeds: Map<string, UploadApiResponse> = new Map<string, UploadApiResponse>();
+
     for (const embedMetadata of embedsMetadata) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
         log(`Loading embeds contents`, 'debug');
       }
 
-      const matchingFile = vault.getFiles().find((value, _index, _obj) => {
-        let retVal = false;
-        if (value.path === embedMetadata.link) {
-          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-            log('Found the embed file: ', 'debug', value);
-          }
-          retVal = true;
-        }
-
-        return retVal;
-      });
+      // WARNING: This finds references to embeds relative to the given file, whether they're at the root or elsewhere
+      const matchingFile = app.metadataCache.getFirstLinkpathDest(getLinkpath(embedMetadata.link), file.path);
 
       if (!matchingFile) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log('Could not find one of the embeds!', 'warn');
+          log('Could not find one of the embeds!', 'warn', embedMetadata.link);
         }
         continue;
+      } else {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log('Found the embed file: ', 'debug', matchingFile);
+        }
       }
 
       const embedContents = await vault.readBinary(matchingFile);
@@ -167,7 +160,6 @@ export const publishPosts = async (
     // Read from disk to avoid working with stale data
     let content = await vault.read(file);
 
-    content = stripYamlFrontMatter(content);
     if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
       log(`Contents`, 'debug', content);
     }
@@ -290,6 +282,86 @@ export const publishPosts = async (
       }
       actionToPerform = 'update';
     }
+
+    // Upload embedded images to Cloudinary if needed
+    if(settings.cloudinarySettings.enabled) {
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Cloudinary upload is enabled. Validating configuration...', 'debug');
+      }
+
+      if (!isValidCloudinaryConfiguration(settings.cloudinarySettings)) {
+        new Notice(
+          `${LOG_PREFIX} The Cloudinary settings are invalid. Please fix the plugin configuration and try again`,
+          NOTICE_TIMEOUT
+        );
+        return;
+      }
+
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Configuring Cloudinary', 'debug');
+      }
+
+      cloudinary.config({
+        cloud_name: settings.cloudinarySettings.cloudName,
+        api_key: settings.cloudinarySettings.apiKey,
+        api_secret: settings.cloudinarySettings.apiSecret,
+      });
+
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Looking for image embeds to upload to Cloudinary', 'debug');
+      }
+
+      for(const embed of embeds.entries()) {
+        if(!embed[0].match(IMAGE_REGEX)) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log(`Skipping embed as it is not an image: `, 'debug', embed[0]);
+          }
+          continue;
+        }
+
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log('Uploading image embed to Cloudinary: ', 'debug', embed[0]);
+        }
+
+        // TODO add support for mobile
+        // Reference: https://github.com/dsebastien/obsidian-publisher/issues/49
+        const imageEmbedAbsoluteFilePath = embed[1].absoluteFilePath;
+
+        if(imageEmbedAbsoluteFilePath === null) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log('Skipping image upload because the absolute path is not available', 'debug');
+          }
+          continue;
+        }
+
+        await cloudinary.uploader.upload(imageEmbedAbsoluteFilePath, {
+          public_id: embed[0],
+        }, (error, result) => {
+          if(error){
+            if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+              log('Failed to upload the image', 'debug', error);
+            }
+          } else if(result && result.url) {
+            if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+              log('Image uploaded successfully', 'debug', result);
+            }
+            // Keep track of the successfully uploaded images
+            successfullyUploadedEmbeds.set(embed[0], result);
+          }
+        });
+      }
+
+      await successfullyUploadedEmbeds.forEach((value, key, _map) => {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log('Updating content for successfully uploaded image embed', 'debug', value.url);
+        }
+        // Replace the existing file embed with a link to the image that was uploaded to Cloudinary
+        content = content.replaceAll(`![[${key}]]`, `<img src="${value.url}" />`);
+        vault.modify(file, content);
+      });
+    }
+
+    content = content = stripYamlFrontMatter(content);
 
     const postToPublishOrUpdate: OPublisherRawPost = {
       title,

@@ -1,5 +1,6 @@
 import { EmbedCache, FrontMatterCache, TFile } from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
+import {OPublisherCloudinarySettings} from "./opublisher-cloudinary-settings.intf";
 
 export const OPublisherPostStatuses = [
   'draft',
@@ -11,6 +12,7 @@ export type OPublisherPostStatus = typeof OPublisherPostStatuses[number];
 export interface OPublisherSettings {
   automaticPublication: boolean;
   ghostSettings: OPublisherGhostSettings;
+  cloudinarySettings: OPublisherCloudinarySettings;
 }
 
 export const DEFAULT_SETTINGS: OPublisherSettings = {
@@ -20,6 +22,12 @@ export const DEFAULT_SETTINGS: OPublisherSettings = {
     adminToken: '',
     apiUrl: '',
     baseUrl: '',
+  },
+  cloudinarySettings: {
+    enabled: false,
+    cloudName: '',
+    apiKey: '',
+    apiSecret: '',
   },
 };
 

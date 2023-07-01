@@ -63,6 +63,7 @@
   "dependencies": {
     "@tryghost/admin-api": "1.13.1",
     "builtin-modules": "3.3.0",
+    "cloudinary": "1.37.3",
     "gray-matter": "4.0.3",
     "immer": "9.0.21",
     "jsonwebtoken": "8.5.1",

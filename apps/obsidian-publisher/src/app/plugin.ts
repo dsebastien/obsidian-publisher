@@ -58,6 +58,7 @@ export class OPublisherPlugin extends Plugin {
     this.settings = produce(this.settings, (draft) => {
       draft.automaticPublication = loadedSettings.automaticPublication;
       draft.ghostSettings = loadedSettings.ghostSettings;
+      draft.cloudinarySettings = loadedSettings.cloudinarySettings;
     });
     log(`Settings loaded`, 'debug', loadedSettings);
   }
