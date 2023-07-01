@@ -1,12 +1,20 @@
 # ObsidianPublisher
 
-Easily publish your content
+Obsidian Publisher is a plugin for Obsidian. With it, you can easily publish your content to different platforms. Write one note, and publish it everywhere you need.
 
 ## Installation
 
 Not ready for prime time...
 
 ## Usage
+
+### Cloudinary
+The [Cloudinary](https://cloudinary.com/) integration enables uploading images embedded in your notes to Cloudinary, and replacing the embeds with images pointing to Cloudinary. This integration, combined with the other ones enables publishing notes containing images as blog posts. If you don't enable this integration, then image embeds will remain as is: `![[Foo.png]]`.
+
+- Create an account on Cloudinary: https://cloudinary.com/
+- Retrieve the `Cloud Name`, `API Key` and `API Secret` from the Dashboard
+- Go to the settings of the lpugin, enable Cloudinary and configure the settings
+- Add the Cloud Name, API Key and API Secret
 
 ### Ghost
 
@@ -67,26 +75,8 @@ Not ready for prime time...
   - `opublisher_hash`
 
 ### How the plugin deals with...
-
-- Links
-  - Adapt to match target platform Base URL
-  - Remove those that don't correspond to also published posts
 - Images
-  - TODO
-    - Ghost
-      - Use Ghost Images API?
-    - How to handle image captions?
-- Embedded Tweets
-  - Convert to the target platform's syntax (if any)
-- Embedded YouTube Videos
-- Embedded Github Gists
-- SEO metadata
-  - TODO
-- Validations
-  - No unknown status
-  - No duplicate slugs
-  - No unknown opublisher properties in YAML front matter
-  - All links point to existing notes
+  - Once enabled and properly configured, the Cloudinary integration uploads all embedded images and replaces the embed links by `<img>` tags
 - New posts (detected when there is no "opublisher_ghost_id" or "opublisher_medium_id")
   - Create the post
   - Save the id in YAML front matter
@@ -112,6 +102,22 @@ Not ready for prime time...
   - Update
     - Content
     - Metadata
+
+### How the plugin could deal with...
+
+- Links
+  - Adapt to match target platform Base URL
+  - Remove those that don't correspond to also published posts 
+- Embedded Tweets
+  - Convert to the target platform's syntax (if any)
+- Embedded YouTube Videos
+- Embedded Github Gists
+- SEO metadata
+- Validations
+  - No unknown status
+  - No duplicate slugs
+  - No unknown opublisher properties in YAML front matter
+  - All links point to existing notes
 - Modification detection
   - To detect modifications, the plugin uses a hash stored in the "opublisher_hash" property
   - If if is not set, the note is considered "new"
@@ -129,11 +135,24 @@ Not ready for prime time...
   - Enabled
     - Type: boolean
     - Default: false
+  - API URL
+    - Type: string (URL)
+    - Default: ""
   - Base URL
     - Type: string (URL)
     - Default: ""
   - Admin Token
     - Type: string
+    - Default: ""
+- Cloudinary
+  - Enabled
+    - Type: boolean
+    - Default: false
+  - API URL
+    - Type: string (URL)
+    - Default: ""
+  - API Secret
+    - Type: string (URL)
     - Default: ""
 - Medium
   - Enabled
@@ -148,11 +167,10 @@ Not ready for prime time...
 
 - How to deal with Tags on Medium
 - Links handling
-- Image handling
 
 ## Contributing
 
-- Check out the project board: https://github.com/dsebastien/obsidian-publisher/projects/1
+- Check out the project board: https://github.com/users/dsebastien/projects/2
 - Check out the issues and look for those with `help wanted` or `good first issue`: https://github.com/dsebastien/obsidian-publisher/issues
 - Review and comment PRs
 - Follow the development guidelines in the next section
