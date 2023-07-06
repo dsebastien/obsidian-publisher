@@ -46,6 +46,7 @@ import {
 import { assertUnreachable } from '../utils/assert-unreachable.fn';
 import produce from 'immer';
 import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
+import {OPublisherNoteHash} from "../types/opublisher-note-hash";
 
 /**
  * Identify the posts to publish, and trigger their publication based on the settings and metadata
@@ -527,11 +528,7 @@ export const publishPosts = async (
         parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
           '<temporary>';
 
-        const dataToHash = produce<{
-          data: { [key: string]: unknown };
-          content: string;
-          excerpt?: string;
-        }>(
+        const dataToHash = produce<OPublisherNoteHash>(
           {
             data: parsedFile.data,
             content: parsedFile.content,
