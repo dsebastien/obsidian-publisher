@@ -87,3 +87,5 @@ export const IMAGE_REGEX = /(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|
  */
 export const IMAGE_EMBED_REGEX =
   /!\[\[(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)\]\]/gim;
+
+export const MARKDOWN_EXTENSION = "md";

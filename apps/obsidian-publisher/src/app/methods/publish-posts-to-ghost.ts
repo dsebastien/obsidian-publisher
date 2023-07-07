@@ -128,15 +128,19 @@ export const publishToGhost = async (
       pedantic: false,
     });
 
+    // TODO process links
+    let postProcessedContentAsHtml = marked(post.content);
+
+    if (DEBUG_TRACE_GHOST_PUBLISHING) {
+      log('HTML before post processing: ', 'debug', postProcessedContentAsHtml);
+    }
+
     // Set the base URL to use for links
     // TODO evaluate how links are modified by this
     //marked.use(baseUrl(settings.baseUrl));
 
-    // TODO process links
-    const postProcessedContentAsHtml = marked(post.content);
-
     if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log('HTML: ', 'debug', postProcessedContentAsHtml);
+      log('HTML after post processing: ', 'debug', postProcessedContentAsHtml);
     }
 
     // FIXME remove

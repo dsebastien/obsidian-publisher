@@ -1,21 +1,17 @@
 import {
+  FileDetails,
   FileEmbed,
+  InternalLink,
   OPublisherPublishAction,
   OPublisherRawPost,
   OPublisherSettings,
 } from '../types';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const matter = require('gray-matter');
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const hash = require('object-hash');
-
 import {UploadApiResponse, v2 as cloudinary} from 'cloudinary';
 
 import {
   EmbedCache,
-  FileSystemAdapter, getLinkpath,
+  FileSystemAdapter,
+  getLinkpath,
   MetadataCache,
   Notice,
   parseFrontMatterEntry,
@@ -23,30 +19,37 @@ import {
   parseFrontMatterTags,
   Vault,
 } from 'obsidian';
-import { log, LOG_PREFIX, LOG_SEPARATOR } from '../utils/log';
-import { publishToGhost } from './publish-posts-to-ghost';
-import { stripYamlFrontMatter } from '../utils/strip-yaml-frontmatter';
-import { isValidOPublisherPostStatus } from './is-valid-opublisher-post-status';
-import { isValidOPublisherPostSlug } from './is-valid-opublisher-post-slug';
-import { isValidGhostConfiguration } from './is-valid-ghost-configuration';
+import {log, LOG_PREFIX, LOG_SEPARATOR} from '../utils/log';
+import {publishToGhost} from './publish-posts-to-ghost';
+import {stripYamlFrontMatter} from '../utils/strip-yaml-frontmatter';
+import {isValidOPublisherPostStatus} from './is-valid-opublisher-post-status';
+import {isValidOPublisherPostSlug} from './is-valid-opublisher-post-slug';
+import {isValidGhostConfiguration} from './is-valid-ghost-configuration';
 import {
+  DEBUG_TRACE_PUBLISHING_PREPARATION,
+  DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
+  IMAGE_REGEX, MARKDOWN_EXTENSION,
   NOTICE_TIMEOUT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_EXCERPT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL,
+  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_SLUG,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TAGS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TITLE,
-  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH,
-  DEBUG_TRACE_PUBLISHING_PREPARATION,
-  DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
-  OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT, IMAGE_REGEX,
 } from '../constants';
-import { assertUnreachable } from '../utils/assert-unreachable.fn';
+import {assertUnreachable} from '../utils/assert-unreachable.fn';
 import produce from 'immer';
 import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
 import {OPublisherNoteHash} from "../types/opublisher-note-hash";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const matter = require('gray-matter');
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const hash = require('object-hash');
 
 /**
  * Identify the posts to publish, and trigger their publication based on the settings and metadata
@@ -71,6 +74,13 @@ export const publishPosts = async (
   const files = vault.getMarkdownFiles();
   const posts: OPublisherRawPost[] = [];
 
+  /**
+   * Map of files in the vault
+   * The key is the file link, which is the path to the file with its extension
+   * Example: foo/bar/file.md
+   */
+  const filesMap: Map<string, FileDetails> = new Map<string, FileDetails>();
+
   for (const file of files) {
     if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
       log(LOG_SEPARATOR, 'debug');
@@ -78,6 +88,12 @@ export const publishPosts = async (
     }
 
     const fileCache = metadataCache.getFileCache(file);
+
+    // Fill the files map
+    filesMap.set(file.path, {
+      file,
+      fileCache,
+    })
 
     // TODO use matter to read the YAML metadata and explore it instead of Obsidian's cache
     const frontMatter = fileCache?.frontmatter;
@@ -93,7 +109,7 @@ export const publishPosts = async (
     const embeds: Map<string, FileEmbed> = new Map<string, FileEmbed>();
 
     // Keep track of (image) embeds that were successfully uploaded
-    const successfullyUploadedEmbeds: Map<string, UploadApiResponse> = new Map<string, UploadApiResponse>();
+    const successfullyUploadedImageEmbeds: Map<string, UploadApiResponse> = new Map<string, UploadApiResponse>();
 
     for (const embedMetadata of embedsMetadata) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -285,7 +301,7 @@ export const publishPosts = async (
     }
 
     // Upload embedded images to Cloudinary if needed
-    if(settings.cloudinarySettings.enabled) {
+    if (settings.cloudinarySettings.enabled) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
         log('Cloudinary upload is enabled. Validating configuration...', 'debug');
       }
@@ -312,8 +328,8 @@ export const publishPosts = async (
         log('Looking for image embeds to upload to Cloudinary', 'debug');
       }
 
-      for(const embed of embeds.entries()) {
-        if(!embed[0].match(IMAGE_REGEX)) {
+      for (const embed of embeds.entries()) {
+        if (!embed[0].match(IMAGE_REGEX)) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
             log(`Skipping embed as it is not an image: `, 'debug', embed[0]);
           }
@@ -328,7 +344,7 @@ export const publishPosts = async (
         // Reference: https://github.com/dsebastien/obsidian-publisher/issues/49
         const imageEmbedAbsoluteFilePath = embed[1].absoluteFilePath;
 
-        if(imageEmbedAbsoluteFilePath === null) {
+        if (imageEmbedAbsoluteFilePath === null) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
             log('Skipping image upload because the absolute path is not available', 'debug');
           }
@@ -338,31 +354,60 @@ export const publishPosts = async (
         await cloudinary.uploader.upload(imageEmbedAbsoluteFilePath, {
           public_id: embed[0],
         }, (error, result) => {
-          if(error){
+          if (error) {
             if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
               log('Failed to upload the image', 'debug', error);
             }
-          } else if(result && result.url) {
+          } else if (result && result.url) {
             if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
               log('Image uploaded successfully', 'debug', result);
             }
             // Keep track of the successfully uploaded images
-            successfullyUploadedEmbeds.set(embed[0], result);
+            successfullyUploadedImageEmbeds.set(embed[0], result);
           }
         });
       }
 
-      await successfullyUploadedEmbeds.forEach((value, key, _map) => {
+      await successfullyUploadedImageEmbeds.forEach((value, key, _map) => {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
           log('Updating content for successfully uploaded image embed', 'debug', value.url);
         }
-        // Replace the existing file embed with a link to the image that was uploaded to Cloudinary
+        // Replace the existing image file embed with a link to the image that was uploaded to Cloudinary
         content = content.replaceAll(`![[${key}]]`, `<img src="${value.url}" />`);
         vault.modify(file, content);
       });
     }
 
-    content = content = stripYamlFrontMatter(content);
+    content = stripYamlFrontMatter(content);
+
+    // FIXME identify
+    // all Wikilinks: [[Bla]]
+    // all Markdown links: [Bla](Bla.md)
+    // https://github.com/dsebastien/obsidian-publisher/issues/31
+    const internalLinks: InternalLink[] = [];
+
+    const fileLinks = fileCache.links;
+
+    // If there are links, process each of those
+    fileLinks?.forEach((fileLink ) => {
+      // Add the extension to have the full path to the link
+      // We will use it as a key to find it back when needed
+      const absoluteFileLink = fileLink.link.endsWith(`.${MARKDOWN_EXTENSION}`)? fileLink.link: `${fileLink.link}.${MARKDOWN_EXTENSION}`;
+
+      const matchingFile: FileDetails | undefined = filesMap.get(absoluteFileLink);
+
+      const internalLink: InternalLink = {
+        linkCache: fileLink,
+        fileDetails: matchingFile,
+      };
+
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Internal link: ', 'debug', internalLink);
+      }
+
+      // Keep the identified internal link, whether it points to an existing file or not
+      internalLinks.push(internalLink);
+    });
 
     const postToPublishOrUpdate: OPublisherRawPost = {
       title,
@@ -378,6 +423,7 @@ export const publishPosts = async (
       filePath: file.path,
       file,
       embeds,
+      internalLinks,
     };
 
     // The id of the post only makes sense if the post was already published
@@ -476,126 +522,129 @@ export const publishPosts = async (
     NOTICE_TIMEOUT
   );
 
-  if (settings.ghostSettings.enabled) {
-    if (!isValidGhostConfiguration(settings.ghostSettings)) {
-      new Notice(
-        `${LOG_PREFIX} The Ghost settings are invalid. Please fix the plugin configuration and try again`,
-        NOTICE_TIMEOUT
-      );
-      return;
+  if (!settings.ghostSettings.enabled) {
+    return;
+  }
+
+  if (!isValidGhostConfiguration(settings.ghostSettings)) {
+    new Notice(
+      `${LOG_PREFIX} The Ghost settings are invalid. Please fix the plugin configuration and try again`,
+      NOTICE_TIMEOUT
+    );
+    return;
+  }
+
+  try {
+    const ghostPublicationResults = await publishToGhost(
+      posts,
+      settings.ghostSettings
+    );
+
+    if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+      log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
     }
-    try {
-      const ghostPublicationResults = await publishToGhost(
-        posts,
-        settings.ghostSettings
+    for (const post of posts) {
+      const updatedPost = ghostPublicationResults.get(post.metadata.slug);
+      if (!updatedPost) {
+        continue;
+      }
+
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`${LOG_SEPARATOR}`, 'debug');
+        log(
+          `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
+          'debug'
+        );
+        log(`File path`, 'debug', post.filePath);
+      }
+
+      // Read from disk to avoid working with stale data
+      const updatedFile = await vault.read(post.file);
+      const parsedFile = matter(updatedFile);
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`New note contents`, 'debug', parsedFile.content);
+      }
+
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`Saving the post ID, URL and last updated at`, 'debug');
+      }
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
+        updatedPost.url;
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
+        updatedPost.id;
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT] =
+        updatedPost.updated_at;
+      // FIXME if this is not defined at this point, then the line that sets the actual value does not work for some reason
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
+        '<temporary>';
+
+      const dataToHash = produce<OPublisherNoteHash>(
+        {
+          data: parsedFile.data,
+          content: parsedFile.content,
+          excerpt: parsedFile.excerpt,
+        }, // We only extract the parts we care about from the parsed file
+        (draft) => {
+          // The hash is excluded from the hash calculation
+          delete draft.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH];
+        }
       );
 
       if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-        log(`Updating Ghost post metadata in Obsidian notes`, 'debug');
+        log(`Data to hash`, 'debug', dataToHash);
       }
-      for (const post of posts) {
-        const updatedPost = ghostPublicationResults.get(post.metadata.slug);
-        if (!updatedPost) {
-          continue;
-        }
 
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`${LOG_SEPARATOR}`, 'debug');
-          log(
-            `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
-            'debug'
-          );
-          log(`File path`, 'debug', post.filePath);
-        }
+      // https://www.npmjs.com/package/object-hash
+      // hash((data (metadata without the hash if present) + content + excerpt))
+      const newHash = hash(dataToHash);
 
-        // Read from disk to avoid working with stale data
-        const updatedFile = await vault.read(post.file);
-        const parsedFile = matter(updatedFile);
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`New note contents`, 'debug', parsedFile.content);
-        }
-
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`Saving the post ID, URL and last updated at`, 'debug');
-        }
-        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_URL] =
-          updatedPost.url;
-        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID] =
-          updatedPost.id;
-        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_UPDATED_AT] =
-          updatedPost.updated_at;
-        // FIXME if this is not defined at this point, then the line that sets the actual value does not work for some reason
-        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
-          '<temporary>';
-
-        const dataToHash = produce<OPublisherNoteHash>(
-          {
-            data: parsedFile.data,
-            content: parsedFile.content,
-            excerpt: parsedFile.excerpt,
-          }, // We only extract the parts we care about from the parsed file
-          (draft) => {
-            // The hash is excluded from the hash calculation
-            delete draft.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH];
-          }
-        );
-
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`Data to hash`, 'debug', dataToHash);
-        }
-
-        // https://www.npmjs.com/package/object-hash
-        // hash((data (metadata without the hash if present) + content + excerpt))
-        const newHash = hash(dataToHash);
-
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`New note hash`, 'debug', newHash);
-          log(`Storing the new hash`, 'debug');
-        }
-
-        // Keep the new hash
-        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
-          newHash;
-        log(
-          `Stored hash`,
-          'debug',
-          parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH]
-        );
-
-        // if action = update and NO hash => warn + skip ==> think about what the user could or should do
-
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`Post metadata before`, 'debug', post.frontMatter);
-          log(`Post metadata after`, 'debug', parsedFile.data);
-
-          log(`Post file contents before`, 'debug', parsedFile.data);
-        }
-        const updatedFileContents = matter.stringify(
-          parsedFile,
-          parsedFile.data
-        );
-        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-          log(`Post file contents after`, 'debug', updatedFileContents);
-        }
-
-        try {
-          await vault.modify(post.file, updatedFileContents);
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Note updated successfully`, 'debug', updatedFileContents);
-          }
-        } catch (error: unknown) {
-          if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-            log(`Failed to updated the note`, 'error', error);
-          }
-        }
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`New note hash`, 'debug', newHash);
+        log(`Storing the new hash`, 'debug');
       }
-    } catch (error: unknown) {
-      new Notice(
-        `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
-        NOTICE_TIMEOUT
+
+      // Keep the new hash
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
+        newHash;
+      log(
+        `Stored hash`,
+        'debug',
+        parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH]
       );
-    }
 
-    return new Promise(() => 0);
+      // if action = update and NO hash => warn + skip ==> think about what the user could or should do
+
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`Post metadata before`, 'debug', post.frontMatter);
+        log(`Post metadata after`, 'debug', parsedFile.data);
+
+        log(`Post file contents before`, 'debug', parsedFile.data);
+      }
+      const updatedFileContents = matter.stringify(
+        parsedFile,
+        parsedFile.data
+      );
+      if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+        log(`Post file contents after`, 'debug', updatedFileContents);
+      }
+
+      try {
+        await vault.modify(post.file, updatedFileContents);
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Note updated successfully`, 'debug', updatedFileContents);
+        }
+      } catch (error: unknown) {
+        if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
+          log(`Failed to updated the note`, 'error', error);
+        }
+      }
+    }
+  } catch (error: unknown) {
+    new Notice(
+      `${LOG_PREFIX} An error occurred while publishing notes to Ghost. Please try again later. Details: ${error}`,
+      NOTICE_TIMEOUT
+    );
   }
+
+  return new Promise(() => 0);
 };

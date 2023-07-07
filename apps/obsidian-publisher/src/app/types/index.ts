@@ -1,4 +1,4 @@
-import { EmbedCache, FrontMatterCache, TFile } from 'obsidian';
+import {CachedMetadata, EmbedCache, FrontMatterCache, LinkCache, TFile} from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
 import {OPublisherCloudinarySettings} from "./opublisher-cloudinary-settings.intf";
 
@@ -84,6 +84,23 @@ export interface OPublisherRawPost {
    * Embeds
    */
   embeds: Map<string, FileEmbed>;
+
+  /**
+   * Internal links
+   */
+  internalLinks: InternalLink[];
+}
+
+/**
+ * A link that points to a file in the vault
+ */
+export interface InternalLink {
+  linkCache: LinkCache;
+  /**
+   * Details about the file that is linked to
+   * If undefined, then the link points to a file that does not exist
+   */
+  fileDetails: FileDetails | undefined;
 }
 
 export interface FileEmbed {
@@ -97,4 +114,9 @@ export interface OPublisherUpdatedPostDetails {
   id: string;
   url: string;
   updated_at: string;
+}
+
+export interface FileDetails {
+  file: TFile;
+  fileCache: CachedMetadata | null;
 }
