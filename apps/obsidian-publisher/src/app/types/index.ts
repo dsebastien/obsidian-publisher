@@ -1,6 +1,12 @@
-import {CachedMetadata, EmbedCache, FrontMatterCache, LinkCache, TFile} from 'obsidian';
+import {
+  CachedMetadata,
+  EmbedCache,
+  FrontMatterCache,
+  LinkCache,
+  TFile,
+} from 'obsidian';
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
-import {OPublisherCloudinarySettings} from "./opublisher-cloudinary-settings.intf";
+import { OPublisherCloudinarySettings } from './opublisher-cloudinary-settings.intf';
 
 export * from './opublisher-note-hash.intf';
 
@@ -128,7 +134,8 @@ export interface FileDetails {
  * A link that needs to be mapped to the target platform
  * When mapping a link, it should be transformed from its current form into an HTML link (a tag) with the following form: <base url>/<slug>
  */
-export type LinkToMap = InternalLink & Pick<OPublisherPostMetadata, 'slug'> & {
-  alternativeTitle: string | undefined;
-  markdownLink: boolean;
-};
+export type LinkToMap = InternalLink &
+  Pick<OPublisherPostMetadata, 'slug'> & {
+    alternativeTitle: string | undefined;
+    markdownLink: boolean;
+  };

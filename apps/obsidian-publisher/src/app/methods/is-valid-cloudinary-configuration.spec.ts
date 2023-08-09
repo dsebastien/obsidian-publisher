@@ -1,5 +1,5 @@
-import {OPublisherCloudinarySettings} from "../types/opublisher-cloudinary-settings.intf";
-import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
+import { OPublisherCloudinarySettings } from '../types/opublisher-cloudinary-settings.intf';
+import { isValidCloudinaryConfiguration } from './is-valid-cloudinary-configuration';
 
 describe('Is Valid Cloudinary configuration', () => {
   it('should accept valid configuration', () => {

@@ -85,18 +85,19 @@ export const DEBUG_SKIP_GHOST_PUBLISH_ACTION = true;
  * Regex that can be used to identify images
  * WARNING: With /gmi, the regex is stateful, and lastIndex must be reset each time
  */
-export const IMAGE_REGEX = /(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)/gmi;
+export const IMAGE_REGEX =
+  /(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)/gim;
 /**
  * Regex that can be used to extract embedded images
  * WARNING: With /gmi, the regex is stateful, and lastIndex must be reset each time
  * Reference: https://help.obsidian.md/Advanced+topics/Accepted+file+formats
  */
 export const IMAGE_EMBED_REGEX =
-  /!\[\[(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)\]\]/gmi;
+  /!\[\[(?<filename>.*)\.(?<extension>png|webp|jpg|jpeg|gif|bmp|svg)\]\]/gim;
 
-export const MARKDOWN_EXTENSION = "md";
+export const MARKDOWN_EXTENSION = 'md';
 /**
  * Regex that can be used to identify (Obsidian) Markdown links
  * WARNING: With /gmi, the regex is stateful, and lastIndex must be reset each time
  */
-export const MARKDOWN_LINK_REGEX = /^\[(.+)\]\((.+)\)$/gmi;
+export const MARKDOWN_LINK_REGEX = /^\[(.+)\]\((.+)\)$/gim;

@@ -9,6 +9,7 @@ Not ready for prime time...
 ## Usage
 
 ### Cloudinary
+
 The [Cloudinary](https://cloudinary.com/) integration enables uploading images embedded in your notes to Cloudinary, and replacing the embeds with images pointing to Cloudinary. This integration, combined with the other ones enables publishing notes containing images as blog posts. If you don't enable this integration, then image embeds will remain as is: `![[Foo.png]]`.
 
 - Create an account on Cloudinary: https://cloudinary.com/
@@ -75,6 +76,7 @@ Not ready for prime time...
   - `opublisher_hash`
 
 ### How the plugin deals with...
+
 - Images
   - Once enabled and properly configured, the Cloudinary integration uploads all embedded images and replaces the embed links by `<img>` tags
 - New posts (detected when there is no "opublisher_ghost_id" or "opublisher_medium_id")
@@ -107,7 +109,7 @@ Not ready for prime time...
 
 - Links
   - Adapt to match target platform Base URL
-  - Remove those that don't correspond to also published posts 
+  - Remove those that don't correspond to also published posts
 - Embedded Tweets
   - Convert to the target platform's syntax (if any)
 - Embedded YouTube Videos

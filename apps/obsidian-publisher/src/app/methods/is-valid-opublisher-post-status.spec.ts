@@ -1,7 +1,5 @@
-import {
-  isValidOPublisherPostStatus,
-} from './is-valid-opublisher-post-status';
-import {OPublisherPostStatus} from "../types";
+import { isValidOPublisherPostStatus } from './is-valid-opublisher-post-status';
+import { OPublisherPostStatus } from '../types';
 
 describe('Is Valid OPublisher Post Status', () => {
   it('should accept valid statuses', () => {

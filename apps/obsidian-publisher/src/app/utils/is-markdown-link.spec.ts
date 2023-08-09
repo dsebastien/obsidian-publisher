@@ -1,4 +1,4 @@
-import {isMarkdownLink} from "./is-markdown-link";
+import { isMarkdownLink } from './is-markdown-link';
 
 describe('Is Markdown link', () => {
   it('should accept URL markdown links', () => {

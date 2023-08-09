@@ -1,4 +1,4 @@
-import {MARKDOWN_LINK_REGEX} from "../constants";
+import { MARKDOWN_LINK_REGEX } from '../constants';
 
 /**
  * Validate that the given value is a valid URL

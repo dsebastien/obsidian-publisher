@@ -1,12 +1,9 @@
-import {Notice, request} from 'obsidian';
-import {marked} from 'marked';
+import { Notice, request } from 'obsidian';
+import { marked } from 'marked';
 //import {baseUrl} from 'marked-base-url';
-import {
-  OPublisherRawPost,
-  OPublisherUpdatedPostDetails,
-} from '../types';
-import {OPublisherGhostSettings} from '../types/opublisher-ghost-settings.intf';
-import {delay} from '../utils/delay';
+import { OPublisherRawPost, OPublisherUpdatedPostDetails } from '../types';
+import { OPublisherGhostSettings } from '../types/opublisher-ghost-settings.intf';
+import { delay } from '../utils/delay';
 import {
   DEBUG_SKIP_GHOST_PUBLISH_ACTION,
   DEBUG_TRACE_GHOST_PUBLISHING,
@@ -15,10 +12,13 @@ import {
   GHOST_API_VERSION,
   NOTICE_TIMEOUT,
 } from '../constants';
-import {log} from '../utils/log';
-import {GhostAdminApiMakeRequestOptions, GhostPost,} from '@tryghost/admin-api';
-import {mapRawPostToGhostPost} from './map-raw-post-to-ghost-post';
-import {assertUnreachable} from '../utils/assert-unreachable.fn';
+import { log } from '../utils/log';
+import {
+  GhostAdminApiMakeRequestOptions,
+  GhostPost,
+} from '@tryghost/admin-api';
+import { mapRawPostToGhostPost } from './map-raw-post-to-ghost-post';
+import { assertUnreachable } from '../utils/assert-unreachable.fn';
 import GhostAdminApi = require('@tryghost/admin-api');
 
 /**
@@ -30,7 +30,7 @@ import GhostAdminApi = require('@tryghost/admin-api');
  */
 export const publishToGhost = async (
   posts: OPublisherRawPost[],
-  settings: OPublisherGhostSettings,
+  settings: OPublisherGhostSettings
 ): Promise<Map<string, OPublisherUpdatedPostDetails>> => {
   log(
     `Publishing ${posts.length} post(s) to Ghost Website (${settings.apiUrl})`,
@@ -135,23 +135,30 @@ export const publishToGhost = async (
     let postProcessedContent = post.content;
 
     if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log("Content before post processing: ", "debug", postProcessedContent);
+      log('Content before post processing: ', 'debug', postProcessedContent);
     }
 
     if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log("Processing links: ", "debug", post.linksToMap);
+      log('Processing links: ', 'debug', post.linksToMap);
     }
 
     // Map the links so that they point to <base-url>/<slug>
-    for(const linkToMap of post.linksToMap) {
+    for (const linkToMap of post.linksToMap) {
       const mappedLinkTarget = `${settings.baseUrl}/${linkToMap.slug}`;
-      log("Mapped link target: ", "debug", mappedLinkTarget);
-      log("Mapped link file name: ", "debug", linkToMap.fileDetails?.file.name);
+      log('Mapped link target: ', 'debug', mappedLinkTarget);
+      log('Mapped link file name: ', 'debug', linkToMap.fileDetails?.file.name);
 
       // For the display text, we either take the existing display text, or the alternative title if there is no display text, or the file name if there is no alternative title either
-      const mappedLinkDisplayText = linkToMap.linkCache.displayText? linkToMap.linkCache.displayText: linkToMap.alternativeTitle? linkToMap.alternativeTitle: linkToMap.fileDetails!.file.basename;
+      const mappedLinkDisplayText = linkToMap.linkCache.displayText
+        ? linkToMap.linkCache.displayText
+        : linkToMap.alternativeTitle
+        ? linkToMap.alternativeTitle
+        : linkToMap.fileDetails!.file.basename;
       const mappedLink = `<a href='${mappedLinkTarget}'>${mappedLinkDisplayText}</a>`;
-      postProcessedContent = postProcessedContent.replaceAll(linkToMap.linkCache.original, mappedLink);
+      postProcessedContent = postProcessedContent.replaceAll(
+        linkToMap.linkCache.original,
+        mappedLink
+      );
     }
 
     if (DEBUG_TRACE_GHOST_PUBLISHING) {

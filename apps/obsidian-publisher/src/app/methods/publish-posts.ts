@@ -1,12 +1,15 @@
 import {
   FileDetails,
   FileEmbed,
-  InternalLink, LinkToMap, OPublisherNoteHash, OPublisherPostStatus,
+  InternalLink,
+  LinkToMap,
+  OPublisherNoteHash,
+  OPublisherPostStatus,
   OPublisherPublishAction,
   OPublisherRawPost,
   OPublisherSettings,
 } from '../types';
-import {UploadApiResponse, v2 as cloudinary} from 'cloudinary';
+import { UploadApiResponse, v2 as cloudinary } from 'cloudinary';
 
 import {
   EmbedCache,
@@ -19,16 +22,17 @@ import {
   parseFrontMatterTags,
   Vault,
 } from 'obsidian';
-import {log, LOG_PREFIX, LOG_SEPARATOR} from '../utils/log';
-import {publishToGhost} from './publish-posts-to-ghost';
-import {stripYamlFrontMatter} from '../utils/strip-yaml-frontmatter';
-import {isValidOPublisherPostStatus} from './is-valid-opublisher-post-status';
-import {isValidOPublisherPostSlug} from './is-valid-opublisher-post-slug';
-import {isValidGhostConfiguration} from './is-valid-ghost-configuration';
+import { log, LOG_PREFIX, LOG_SEPARATOR } from '../utils/log';
+import { publishToGhost } from './publish-posts-to-ghost';
+import { stripYamlFrontMatter } from '../utils/strip-yaml-frontmatter';
+import { isValidOPublisherPostStatus } from './is-valid-opublisher-post-status';
+import { isValidOPublisherPostSlug } from './is-valid-opublisher-post-slug';
+import { isValidGhostConfiguration } from './is-valid-ghost-configuration';
 import {
   DEBUG_TRACE_PUBLISHING_PREPARATION,
   DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING,
-  IMAGE_REGEX, MARKDOWN_EXTENSION,
+  IMAGE_REGEX,
+  MARKDOWN_EXTENSION,
   NOTICE_TIMEOUT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_EXCERPT,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_GHOST_ID,
@@ -40,10 +44,10 @@ import {
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TAGS,
   OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TITLE,
 } from '../constants';
-import {assertUnreachable} from '../utils/assert-unreachable.fn';
+import { assertUnreachable } from '../utils/assert-unreachable.fn';
 import produce from 'immer';
-import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
-import {isMarkdownLink} from "../utils/is-markdown-link";
+import { isValidCloudinaryConfiguration } from './is-valid-cloudinary-configuration';
+import { isMarkdownLink } from '../utils/is-markdown-link';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const matter = require('gray-matter');
@@ -93,7 +97,7 @@ export const publishPosts = async (
     filesMap.set(file.path, {
       file,
       fileCache,
-    })
+    });
 
     // TODO use matter to read the YAML metadata and explore it instead of Obsidian's cache
     const frontMatter = fileCache?.frontmatter;
@@ -109,7 +113,8 @@ export const publishPosts = async (
     const embeds: Map<string, FileEmbed> = new Map<string, FileEmbed>();
 
     // Keep track of (image) embeds that were successfully uploaded
-    const successfullyUploadedImageEmbeds: Map<string, UploadApiResponse> = new Map<string, UploadApiResponse>();
+    const successfullyUploadedImageEmbeds: Map<string, UploadApiResponse> =
+      new Map<string, UploadApiResponse>();
 
     for (const embedMetadata of embedsMetadata) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -117,7 +122,10 @@ export const publishPosts = async (
       }
 
       // WARNING: This finds references to embeds relative to the given file, whether they're at the root or elsewhere
-      const matchingFile = app.metadataCache.getFirstLinkpathDest(getLinkpath(embedMetadata.link), file.path);
+      const matchingFile = app.metadataCache.getFirstLinkpathDest(
+        getLinkpath(embedMetadata.link),
+        file.path
+      );
 
       if (!matchingFile) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -303,7 +311,10 @@ export const publishPosts = async (
     // Upload embedded images to Cloudinary if needed
     if (settings.cloudinarySettings.enabled) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-        log('Cloudinary upload is enabled. Validating configuration...', 'debug');
+        log(
+          'Cloudinary upload is enabled. Validating configuration...',
+          'debug'
+        );
       }
 
       if (!isValidCloudinaryConfiguration(settings.cloudinarySettings)) {
@@ -346,34 +357,48 @@ export const publishPosts = async (
 
         if (imageEmbedAbsoluteFilePath === null) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-            log('Skipping image upload because the absolute path is not available', 'debug');
+            log(
+              'Skipping image upload because the absolute path is not available',
+              'debug'
+            );
           }
           continue;
         }
 
-        await cloudinary.uploader.upload(imageEmbedAbsoluteFilePath, {
-          public_id: embed[0],
-        }, (error, result) => {
-          if (error) {
-            if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-              log('Failed to upload the image', 'debug', error);
+        await cloudinary.uploader.upload(
+          imageEmbedAbsoluteFilePath,
+          {
+            public_id: embed[0],
+          },
+          (error, result) => {
+            if (error) {
+              if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+                log('Failed to upload the image', 'debug', error);
+              }
+            } else if (result && result.url) {
+              if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+                log('Image uploaded successfully', 'debug', result);
+              }
+              // Keep track of the successfully uploaded images
+              successfullyUploadedImageEmbeds.set(embed[0], result);
             }
-          } else if (result && result.url) {
-            if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-              log('Image uploaded successfully', 'debug', result);
-            }
-            // Keep track of the successfully uploaded images
-            successfullyUploadedImageEmbeds.set(embed[0], result);
           }
-        });
+        );
       }
 
       await successfullyUploadedImageEmbeds.forEach((value, key, _map) => {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log('Updating content for successfully uploaded image embed', 'debug', value.url);
+          log(
+            'Updating content for successfully uploaded image embed',
+            'debug',
+            value.url
+          );
         }
         // Replace the existing image file embed with a link to the image that was uploaded to Cloudinary
-        content = content.replaceAll(`![[${key}]]`, `<img src="${value.url}" />`);
+        content = content.replaceAll(
+          `![[${key}]]`,
+          `<img src="${value.url}" />`
+        );
         vault.modify(file, content);
       });
     }
@@ -385,56 +410,75 @@ export const publishPosts = async (
     const fileLinks = fileCache.links;
 
     // If there are links, process each of those
-    fileLinks?.forEach((fileLink ) => {
+    fileLinks?.forEach((fileLink) => {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-        log('Collecting information about the following link: ', 'debug', fileLink);
+        log(
+          'Collecting information about the following link: ',
+          'debug',
+          fileLink
+        );
       }
 
       // Add the extension to have the full path to the link
       // We will use it as a key to find it back when needed
-      const fullFilename = fileLink.link.endsWith(`.${MARKDOWN_EXTENSION}`)? fileLink.link: `${fileLink.link}.${MARKDOWN_EXTENSION}`;
+      const fullFilename = fileLink.link.endsWith(`.${MARKDOWN_EXTENSION}`)
+        ? fileLink.link
+        : `${fileLink.link}.${MARKDOWN_EXTENSION}`;
 
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-        log('Looking for the file matching the following link: ', 'debug', fullFilename);
+        log(
+          'Looking for the file matching the following link: ',
+          'debug',
+          fullFilename
+        );
       }
 
       let matchingFile: FileDetails | undefined = filesMap.get(fullFilename);
 
       // If it wasn't found, then we are optimistic
-      if(!matchingFile) {
+      if (!matchingFile) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log('No file found matching the link. The link is probably pointing to a uniquely named note present in a sub-folder', 'debug');
+          log(
+            'No file found matching the link. The link is probably pointing to a uniquely named note present in a sub-folder',
+            'debug'
+          );
         }
 
         let foundMatches = 0;
-        for(const fileKey of filesMap.keys()) {
+        for (const fileKey of filesMap.keys()) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
             log('File key: ', 'debug', fileKey);
           }
 
-          if(fileKey.contains(fullFilename)) {
+          if (fileKey.contains(fullFilename)) {
             if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
               log('Found a matching file for the link: ', 'debug', fileKey);
             }
 
             foundMatches += 1;
-            matchingFile = filesMap.get(fileKey)
+            matchingFile = filesMap.get(fileKey);
           }
         }
 
-        if(foundMatches > 1) {
+        if (foundMatches > 1) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-            log('Found multiple matching files for the link. Difficult to identify which one is the correct one. Taking the last one, with key: ', 'debug', matchingFile);
+            log(
+              'Found multiple matching files for the link. Difficult to identify which one is the correct one. Taking the last one, with key: ',
+              'debug',
+              matchingFile
+            );
           }
         }
       }
 
-      log("File map: ", "debug", filesMap);
+      log('File map: ', 'debug', filesMap);
 
       let cachedMetadataOfMatchingFile = undefined;
-      if(matchingFile) {
-        const foundMetadataForMatchingFile = metadataCache.getFileCache(matchingFile.file);
-        if(foundMetadataForMatchingFile) {
+      if (matchingFile) {
+        const foundMetadataForMatchingFile = metadataCache.getFileCache(
+          matchingFile.file
+        );
+        if (foundMetadataForMatchingFile) {
           cachedMetadataOfMatchingFile = foundMetadataForMatchingFile;
         }
       }
@@ -455,32 +499,53 @@ export const publishPosts = async (
 
     const linksToMap: LinkToMap[] = [];
 
-    for(const link of internalLinks) {
+    for (const link of internalLinks) {
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-        log("Link to process: ", "debug", link);
+        log('Link to process: ', 'debug', link);
       }
 
       let linkRemoved = false;
 
-      if (!link.fileDetails || !link.fileMetadata || !link.fileMetadata.frontmatter || (link.linkCache.displayText && link.linkCache.displayText === '')) {
+      if (
+        !link.fileDetails ||
+        !link.fileMetadata ||
+        !link.fileMetadata.frontmatter ||
+        (link.linkCache.displayText && link.linkCache.displayText === '')
+      ) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log("Removing a link that points to a note that does not exist or that does not have the expected metadata: ", "debug", link);
+          log(
+            'Removing a link that points to a note that does not exist or that does not have the expected metadata: ',
+            'debug',
+            link
+          );
         }
 
         linkRemoved = true;
 
         // If there is no display text and it looks like a Markdown link, then we just remove the link altogether
         // We expect those to correspond to internal Markdown links
-        if(link.linkCache.displayText === '' && link.linkCache.link.endsWith('.md')) {
+        if (
+          link.linkCache.displayText === '' &&
+          link.linkCache.link.endsWith('.md')
+        ) {
           if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-            log("Identified what looks like an internal Markdown link: ", "debug", link);
+            log(
+              'Identified what looks like an internal Markdown link: ',
+              'debug',
+              link
+            );
           }
 
           content = content.replaceAll(link.linkCache.original, '');
           continue;
         }
 
-        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+        content = content.replaceAll(
+          link.linkCache.original,
+          link.linkCache.displayText
+            ? link.linkCache.displayText
+            : link.linkCache.link
+        );
         continue;
       }
 
@@ -500,34 +565,56 @@ export const publishPosts = async (
       );
 
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-        log("Linked note slug: ", 'debug', linkedNoteSlug);
-        log("Linked note title: ", 'debug', linkedNoteTitle);
-        log("Linked note status: ", "debug", linkedNoteStatus);
+        log('Linked note slug: ', 'debug', linkedNoteSlug);
+        log('Linked note title: ', 'debug', linkedNoteTitle);
+        log('Linked note status: ', 'debug', linkedNoteStatus);
       }
 
       // If the link does not point to a note that should be published or scheduled, then we remove it as well
-      if(!linkedNoteStatus || linkedNoteStatus as OPublisherPostStatus !== 'published' && linkedNoteStatus as OPublisherPostStatus !== 'scheduled') {
+      if (
+        !linkedNoteStatus ||
+        ((linkedNoteStatus as OPublisherPostStatus) !== 'published' &&
+          (linkedNoteStatus as OPublisherPostStatus) !== 'scheduled')
+      ) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log("Removing a link that points to a note that won't be published or scheduled: ", "debug", link);
+          log(
+            "Removing a link that points to a note that won't be published or scheduled: ",
+            'debug',
+            link
+          );
         }
         linkRemoved = true;
-        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+        content = content.replaceAll(
+          link.linkCache.original,
+          link.linkCache.displayText
+            ? link.linkCache.displayText
+            : link.linkCache.link
+        );
       }
 
       // If the link does not point to a note that has a slug, then we remove it as well
-      if(!linkedNoteSlug) {
+      if (!linkedNoteSlug) {
         if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-          log("Removing a link that points to a note that does not have a configured slug: ", "debug", link);
+          log(
+            'Removing a link that points to a note that does not have a configured slug: ',
+            'debug',
+            link
+          );
         }
         linkRemoved = true;
-        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+        content = content.replaceAll(
+          link.linkCache.original,
+          link.linkCache.displayText
+            ? link.linkCache.displayText
+            : link.linkCache.link
+        );
       }
 
       // Note: the linked note title is not mandatory, it's just used as an alternative text if there is no display text on the link
 
       // The link hasn't been removed, so we need to post-process it
       // We keep the link details along with the identified slug
-      if(!linkRemoved) {
+      if (!linkRemoved) {
         linksToMap.push({
           ...link,
           slug: linkedNoteSlug,
@@ -652,7 +739,7 @@ export const publishPosts = async (
 
   if (!settings.ghostSettings.enabled) {
     if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
-      log("Ghost publishing is disabled. Aborting", "debug");
+      log('Ghost publishing is disabled. Aborting', 'debug');
     }
     return;
   }
@@ -737,8 +824,7 @@ export const publishPosts = async (
       }
 
       // Keep the new hash
-      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] =
-        newHash;
+      parsedFile.data[OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH] = newHash;
       log(
         `Stored hash`,
         'debug',
@@ -753,10 +839,7 @@ export const publishPosts = async (
 
         log(`Post file contents before`, 'debug', parsedFile.data);
       }
-      const updatedFileContents = matter.stringify(
-        parsedFile,
-        parsedFile.data
-      );
+      const updatedFileContents = matter.stringify(parsedFile, parsedFile.data);
       if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
         log(`Post file contents after`, 'debug', updatedFileContents);
       }

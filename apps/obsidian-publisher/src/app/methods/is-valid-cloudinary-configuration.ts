@@ -1,5 +1,5 @@
 import { log } from '../utils/log';
-import {OPublisherCloudinarySettings} from "../types/opublisher-cloudinary-settings.intf";
+import { OPublisherCloudinarySettings } from '../types/opublisher-cloudinary-settings.intf';
 
 /**
  * Validate the Cloudinary configuration
@@ -14,17 +14,26 @@ export const isValidCloudinaryConfiguration = (
   let retVal = true;
 
   log('Cloudinary cloud name:', 'debug', cloudinarySettings.cloudName);
-  if (!cloudinarySettings.cloudName || cloudinarySettings.cloudName.trim().length === 0) {
+  if (
+    !cloudinarySettings.cloudName ||
+    cloudinarySettings.cloudName.trim().length === 0
+  ) {
     log(`The cloud name is invalid`, 'debug', cloudinarySettings.cloudName);
     retVal = false;
   }
 
-  if (!cloudinarySettings.apiKey || cloudinarySettings.apiKey.trim().length === 0) {
+  if (
+    !cloudinarySettings.apiKey ||
+    cloudinarySettings.apiKey.trim().length === 0
+  ) {
     log(`The API key is invalid`, 'debug');
     retVal = false;
   }
 
-  if (!cloudinarySettings.apiSecret || cloudinarySettings.apiSecret.trim().length === 0) {
+  if (
+    !cloudinarySettings.apiSecret ||
+    cloudinarySettings.apiSecret.trim().length === 0
+  ) {
     log(`The API secret is invalid`, 'debug');
     retVal = false;
   }

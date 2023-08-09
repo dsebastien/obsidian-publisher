@@ -20,7 +20,7 @@ export class OPublisherSettingTab extends PluginSettingTab {
     containerEl.createEl('h1', { text: pluginManifest.name });
 
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: 'Ghost settings'});
+    containerEl.createEl('h3', { text: 'Ghost settings' });
 
     new Setting(containerEl).setName('Publish to Ghost').addToggle((toggle) =>
       toggle
@@ -82,19 +82,21 @@ export class OPublisherSettingTab extends PluginSettingTab {
     );
 
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: 'Cloudinary settings'});
+    containerEl.createEl('h3', { text: 'Cloudinary settings' });
 
-    new Setting(containerEl).setName('Upload images to Cloudinary').addToggle((toggle) =>
-      toggle
-        .setValue(this.plugin.settings.cloudinarySettings.enabled)
-        .onChange(async (value) => {
-          log('Upload images to Cloudinary set to: ' + value, 'debug');
-          this.plugin.settings = produce(this.plugin.settings, (draft) => {
-            draft.cloudinarySettings.enabled = value;
-          });
-          await this.plugin.saveSettings();
-        })
-    );
+    new Setting(containerEl)
+      .setName('Upload images to Cloudinary')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.cloudinarySettings.enabled)
+          .onChange(async (value) => {
+            log('Upload images to Cloudinary set to: ' + value, 'debug');
+            this.plugin.settings = produce(this.plugin.settings, (draft) => {
+              draft.cloudinarySettings.enabled = value;
+            });
+            await this.plugin.saveSettings();
+          })
+      );
 
     new Setting(containerEl).setName('Cloudinary Cloud Name').addText((text) =>
       text

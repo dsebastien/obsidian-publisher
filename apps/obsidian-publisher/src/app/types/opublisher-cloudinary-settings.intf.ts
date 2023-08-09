@@ -19,5 +19,3 @@ export interface OPublisherCloudinarySettings {
    */
   apiSecret: string;
 }
-
-
