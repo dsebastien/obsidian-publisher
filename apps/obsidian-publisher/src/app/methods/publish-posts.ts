@@ -1,7 +1,7 @@
 import {
   FileDetails,
   FileEmbed,
-  InternalLink,
+  InternalLink, LinkToMap, OPublisherNoteHash, OPublisherPostStatus,
   OPublisherPublishAction,
   OPublisherRawPost,
   OPublisherSettings,
@@ -43,7 +43,7 @@ import {
 import {assertUnreachable} from '../utils/assert-unreachable.fn';
 import produce from 'immer';
 import {isValidCloudinaryConfiguration} from "./is-valid-cloudinary-configuration";
-import {OPublisherNoteHash} from "../types/opublisher-note-hash";
+import {isMarkdownLink} from "../utils/is-markdown-link";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const matter = require('gray-matter');
@@ -380,25 +380,69 @@ export const publishPosts = async (
 
     content = stripYamlFrontMatter(content);
 
-    // FIXME identify
-    // all Wikilinks: [[Bla]]
-    // all Markdown links: [Bla](Bla.md)
-    // https://github.com/dsebastien/obsidian-publisher/issues/31
     const internalLinks: InternalLink[] = [];
 
     const fileLinks = fileCache.links;
 
     // If there are links, process each of those
     fileLinks?.forEach((fileLink ) => {
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Collecting information about the following link: ', 'debug', fileLink);
+      }
+
       // Add the extension to have the full path to the link
       // We will use it as a key to find it back when needed
-      const absoluteFileLink = fileLink.link.endsWith(`.${MARKDOWN_EXTENSION}`)? fileLink.link: `${fileLink.link}.${MARKDOWN_EXTENSION}`;
+      const fullFilename = fileLink.link.endsWith(`.${MARKDOWN_EXTENSION}`)? fileLink.link: `${fileLink.link}.${MARKDOWN_EXTENSION}`;
 
-      const matchingFile: FileDetails | undefined = filesMap.get(absoluteFileLink);
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log('Looking for the file matching the following link: ', 'debug', fullFilename);
+      }
+
+      let matchingFile: FileDetails | undefined = filesMap.get(fullFilename);
+
+      // If it wasn't found, then we are optimistic
+      if(!matchingFile) {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log('No file found matching the link. The link is probably pointing to a uniquely named note present in a sub-folder', 'debug');
+        }
+
+        let foundMatches = 0;
+        for(const fileKey of filesMap.keys()) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log('File key: ', 'debug', fileKey);
+          }
+
+          if(fileKey.contains(fullFilename)) {
+            if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+              log('Found a matching file for the link: ', 'debug', fileKey);
+            }
+
+            foundMatches += 1;
+            matchingFile = filesMap.get(fileKey)
+          }
+        }
+
+        if(foundMatches > 1) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log('Found multiple matching files for the link. Difficult to identify which one is the correct one. Taking the last one, with key: ', 'debug', matchingFile);
+          }
+        }
+      }
+
+      log("File map: ", "debug", filesMap);
+
+      let cachedMetadataOfMatchingFile = undefined;
+      if(matchingFile) {
+        const foundMetadataForMatchingFile = metadataCache.getFileCache(matchingFile.file);
+        if(foundMetadataForMatchingFile) {
+          cachedMetadataOfMatchingFile = foundMetadataForMatchingFile;
+        }
+      }
 
       const internalLink: InternalLink = {
         linkCache: fileLink,
         fileDetails: matchingFile,
+        fileMetadata: cachedMetadataOfMatchingFile,
       };
 
       if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
@@ -408,6 +452,90 @@ export const publishPosts = async (
       // Keep the identified internal link, whether it points to an existing file or not
       internalLinks.push(internalLink);
     });
+
+    const linksToMap: LinkToMap[] = [];
+
+    for(const link of internalLinks) {
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log("Link to process: ", "debug", link);
+      }
+
+      let linkRemoved = false;
+
+      if (!link.fileDetails || !link.fileMetadata || !link.fileMetadata.frontmatter || (link.linkCache.displayText && link.linkCache.displayText === '')) {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log("Removing a link that points to a note that does not exist or that does not have the expected metadata: ", "debug", link);
+        }
+
+        linkRemoved = true;
+
+        // If there is no display text and it looks like a Markdown link, then we just remove the link altogether
+        // We expect those to correspond to internal Markdown links
+        if(link.linkCache.displayText === '' && link.linkCache.link.endsWith('.md')) {
+          if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+            log("Identified what looks like an internal Markdown link: ", "debug", link);
+          }
+
+          content = content.replaceAll(link.linkCache.original, '');
+          continue;
+        }
+
+        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+        continue;
+      }
+
+      const linkedNoteStatus = parseFrontMatterEntry(
+        link.fileMetadata.frontmatter,
+        OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_STATUS
+      );
+
+      const linkedNoteSlug = parseFrontMatterEntry(
+        link.fileMetadata.frontmatter,
+        OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_SLUG
+      );
+
+      const linkedNoteTitle = parseFrontMatterEntry(
+        link.fileMetadata.frontmatter,
+        OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_TITLE
+      );
+
+      if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+        log("Linked note slug: ", 'debug', linkedNoteSlug);
+        log("Linked note title: ", 'debug', linkedNoteTitle);
+        log("Linked note status: ", "debug", linkedNoteStatus);
+      }
+
+      // If the link does not point to a note that should be published or scheduled, then we remove it as well
+      if(!linkedNoteStatus || linkedNoteStatus as OPublisherPostStatus !== 'published' && linkedNoteStatus as OPublisherPostStatus !== 'scheduled') {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log("Removing a link that points to a note that won't be published or scheduled: ", "debug", link);
+        }
+        linkRemoved = true;
+        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+      }
+
+      // If the link does not point to a note that has a slug, then we remove it as well
+      if(!linkedNoteSlug) {
+        if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+          log("Removing a link that points to a note that does not have a configured slug: ", "debug", link);
+        }
+        linkRemoved = true;
+        content = content.replaceAll(link.linkCache.original, link.linkCache.displayText? link.linkCache.displayText: link.linkCache.link);
+      }
+
+      // Note: the linked note title is not mandatory, it's just used as an alternative text if there is no display text on the link
+
+      // The link hasn't been removed, so we need to post-process it
+      // We keep the link details along with the identified slug
+      if(!linkRemoved) {
+        linksToMap.push({
+          ...link,
+          slug: linkedNoteSlug,
+          alternativeTitle: linkedNoteTitle,
+          markdownLink: isMarkdownLink(link.linkCache.original),
+        });
+      }
+    }
 
     const postToPublishOrUpdate: OPublisherRawPost = {
       title,
@@ -423,7 +551,7 @@ export const publishPosts = async (
       filePath: file.path,
       file,
       embeds,
-      internalLinks,
+      linksToMap,
     };
 
     // The id of the post only makes sense if the post was already published
@@ -523,6 +651,9 @@ export const publishPosts = async (
   );
 
   if (!settings.ghostSettings.enabled) {
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log("Ghost publishing is disabled. Aborting", "debug");
+    }
     return;
   }
 
@@ -535,6 +666,9 @@ export const publishPosts = async (
   }
 
   try {
+    if (DEBUG_TRACE_PUBLISHING_PREPARATION) {
+      log(`Publishing to Ghost`, 'debug');
+    }
     const ghostPublicationResults = await publishToGhost(
       posts,
       settings.ghostSettings
@@ -550,7 +684,6 @@ export const publishPosts = async (
       }
 
       if (DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING) {
-        log(`${LOG_SEPARATOR}`, 'debug');
         log(
           `Updating Ghost post metadata in Obsidian for the note called "${post.title}" (${post.filePath})`,
           'debug'

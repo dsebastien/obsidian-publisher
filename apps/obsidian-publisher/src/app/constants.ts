@@ -64,15 +64,15 @@ export const OBSIDIAN_PUBLISHER_FRONT_MATTER_KEY_NOTE_HASH = 'opublisher_hash';
 /**
  * Whether to trace HTTP requests to Ghost
  */
-export const DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST = false;
+export const DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST = true;
 /**
  * Whether to trace the Ghost publishing process
  */
-export const DEBUG_TRACE_GHOST_PUBLISHING = false;
+export const DEBUG_TRACE_GHOST_PUBLISHING = true;
 /**
  * Whether to trace the publishing preparation process
  */
-export const DEBUG_TRACE_PUBLISHING_PREPARATION = false;
+export const DEBUG_TRACE_PUBLISHING_PREPARATION = true;
 /**
  * Whether to trace the handling of publishing results (e.g., update of notes metadata)
  */
@@ -80,7 +80,7 @@ export const DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING = true;
 /**
  * Whether to skip the publish action for Ghost posts (only useful for debugging)
  */
-export const DEBUG_SKIP_GHOST_PUBLISH_ACTION = false;
+export const DEBUG_SKIP_GHOST_PUBLISH_ACTION = true;
 /**
  * Regex that can be used to identify images
  * WARNING: With /gmi, the regex is stateful, and lastIndex must be reset each time

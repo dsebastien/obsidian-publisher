@@ -2,6 +2,8 @@ import {CachedMetadata, EmbedCache, FrontMatterCache, LinkCache, TFile} from 'ob
 import { OPublisherGhostSettings } from './opublisher-ghost-settings.intf';
 import {OPublisherCloudinarySettings} from "./opublisher-cloudinary-settings.intf";
 
+export * from './opublisher-note-hash.intf';
+
 export const OPublisherPostStatuses = [
   'draft',
   'published',
@@ -86,9 +88,9 @@ export interface OPublisherRawPost {
   embeds: Map<string, FileEmbed>;
 
   /**
-   * Internal links
+   * Links that should be mapped
    */
-  internalLinks: InternalLink[];
+  linksToMap: LinkToMap[];
 }
 
 /**
@@ -101,6 +103,7 @@ export interface InternalLink {
    * If undefined, then the link points to a file that does not exist
    */
   fileDetails: FileDetails | undefined;
+  fileMetadata: CachedMetadata | undefined;
 }
 
 export interface FileEmbed {
@@ -120,3 +123,12 @@ export interface FileDetails {
   file: TFile;
   fileCache: CachedMetadata | null;
 }
+
+/**
+ * A link that needs to be mapped to the target platform
+ * When mapping a link, it should be transformed from its current form into an HTML link (a tag) with the following form: <base url>/<slug>
+ */
+export type LinkToMap = InternalLink & Pick<OPublisherPostMetadata, 'slug'> & {
+  alternativeTitle: string | undefined;
+  markdownLink: boolean;
+};

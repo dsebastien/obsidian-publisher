@@ -1,10 +1,14 @@
 import {Notice, request} from 'obsidian';
 import {marked} from 'marked';
 //import {baseUrl} from 'marked-base-url';
-import {OPublisherRawPost, OPublisherUpdatedPostDetails,} from '../types';
+import {
+  OPublisherRawPost,
+  OPublisherUpdatedPostDetails,
+} from '../types';
 import {OPublisherGhostSettings} from '../types/opublisher-ghost-settings.intf';
 import {delay} from '../utils/delay';
 import {
+  DEBUG_SKIP_GHOST_PUBLISH_ACTION,
   DEBUG_TRACE_GHOST_PUBLISHING,
   DEBUG_TRACE_HTTP_REQUESTS_TO_GHOST,
   DELAY_BETWEEN_ACTIONS,
@@ -128,23 +132,37 @@ export const publishToGhost = async (
       pedantic: false,
     });
 
-    // TODO process links
-    let postProcessedContentAsHtml = marked(post.content);
+    let postProcessedContent = post.content;
 
     if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log('HTML before post processing: ', 'debug', postProcessedContentAsHtml);
+      log("Content before post processing: ", "debug", postProcessedContent);
     }
-
-    // Set the base URL to use for links
-    // TODO evaluate how links are modified by this
-    //marked.use(baseUrl(settings.baseUrl));
 
     if (DEBUG_TRACE_GHOST_PUBLISHING) {
-      log('HTML after post processing: ', 'debug', postProcessedContentAsHtml);
+      log("Processing links: ", "debug", post.linksToMap);
     }
 
-    // FIXME remove
-    throw new Error('Oops');
+    // Map the links so that they point to <base-url>/<slug>
+    for(const linkToMap of post.linksToMap) {
+      const mappedLinkTarget = `${settings.baseUrl}/${linkToMap.slug}`;
+      log("Mapped link target: ", "debug", mappedLinkTarget);
+      log("Mapped link file name: ", "debug", linkToMap.fileDetails?.file.name);
+
+      // For the display text, we either take the existing display text, or the alternative title if there is no display text, or the file name if there is no alternative title either
+      const mappedLinkDisplayText = linkToMap.linkCache.displayText? linkToMap.linkCache.displayText: linkToMap.alternativeTitle? linkToMap.alternativeTitle: linkToMap.fileDetails!.file.basename;
+      const mappedLink = `<a href='${mappedLinkTarget}'>${mappedLinkDisplayText}</a>`;
+      postProcessedContent = postProcessedContent.replaceAll(linkToMap.linkCache.original, mappedLink);
+    }
+
+    if (DEBUG_TRACE_GHOST_PUBLISHING) {
+      log('Content after post processing: ', 'debug', postProcessedContent);
+    }
+
+    const postProcessedContentAsHtml = marked(postProcessedContent);
+
+    if (DEBUG_TRACE_GHOST_PUBLISHING) {
+      log('Generated HTML: ', 'debug', postProcessedContentAsHtml);
+    }
 
     // @ts-ignore
     const ghostPost: GhostPost = mapRawPostToGhostPost(
@@ -152,99 +170,101 @@ export const publishToGhost = async (
       postProcessedContentAsHtml
     );
 
-    switch (post.publishAction) {
-      case 'publish':
-        try {
-          const createdPost = await ghostApi.posts.add(ghostPost, {
-            source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
-          });
+    if (!DEBUG_SKIP_GHOST_PUBLISH_ACTION) {
+      switch (post.publishAction) {
+        case 'publish':
+          try {
+            const createdPost = await ghostApi.posts.add(ghostPost, {
+              source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
+            });
 
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Created Ghost post`, 'debug', createdPost);
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Created Ghost post`, 'debug', createdPost);
+            }
+
+            const postId = createdPost.id;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post ID`, 'debug', postId);
+            }
+
+            const postUrl = createdPost.url;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post URL`, 'debug', postUrl);
+            }
+
+            const postUpdatedAt = createdPost.updated_at;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
+            }
+
+            // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
+            retVal.set(post.metadata.slug, {
+              id: postId,
+              url: postUrl,
+              updated_at: postUpdatedAt,
+            });
+
+            new Notice(
+              `"${createdPost.title}" (${post.filePath}) has been published successfully!`,
+              NOTICE_TIMEOUT
+            );
+          } catch (error: unknown) {
+            log('Ghost publication error', 'debug', error);
+            new Notice(
+              `Failed to publish the post. Error: ${error}`,
+              NOTICE_TIMEOUT
+            );
           }
+          break;
+        case 'update':
+          try {
+            const updatedPost = await ghostApi.posts.edit(ghostPost, {
+              source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
+            });
 
-          const postId = createdPost.id;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post ID`, 'debug', postId);
+            const postId = updatedPost.id;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post ID`, 'debug', postId);
+            }
+
+            const postUrl = updatedPost.url;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post URL`, 'debug', postUrl);
+            }
+
+            const postUpdatedAt = updatedPost.updated_at;
+            if (DEBUG_TRACE_GHOST_PUBLISHING) {
+              log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
+            }
+
+            // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
+            retVal.set(post.metadata.slug, {
+              id: postId,
+              url: postUrl,
+              updated_at: postUpdatedAt,
+            });
+
+            new Notice(
+              `"${updatedPost.title}" (${post.filePath}) has been updated successfully!`,
+              NOTICE_TIMEOUT
+            );
+          } catch (error: unknown) {
+            log('Ghost publication error', 'debug', error);
+            new Notice(
+              `Failed to update the post. Error: ${error}`,
+              NOTICE_TIMEOUT
+            );
           }
+          break;
+        default:
+          // FIXME remove
+          // @ts-ignore
+          assertUnreachable(post.publishAction);
+      }
 
-          const postUrl = createdPost.url;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post URL`, 'debug', postUrl);
-          }
-
-          const postUpdatedAt = createdPost.updated_at;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
-          }
-
-          // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
-          retVal.set(post.metadata.slug, {
-            id: postId,
-            url: postUrl,
-            updated_at: postUpdatedAt,
-          });
-
-          new Notice(
-            `"${createdPost.title}" (${post.filePath}) has been published successfully!`,
-            NOTICE_TIMEOUT
-          );
-        } catch (error: unknown) {
-          log('Ghost publication error', 'debug', error);
-          new Notice(
-            `Failed to publish the post. Error: ${error}`,
-            NOTICE_TIMEOUT
-          );
-        }
-        break;
-      case 'update':
-        try {
-          const updatedPost = await ghostApi.posts.edit(ghostPost, {
-            source: 'html', // Tell the API to use HTML as the content source, instead of mobiledoc, as we convert Markdown to HTML
-          });
-
-          const postId = updatedPost.id;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post ID`, 'debug', postId);
-          }
-
-          const postUrl = updatedPost.url;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post URL`, 'debug', postUrl);
-          }
-
-          const postUpdatedAt = updatedPost.updated_at;
-          if (DEBUG_TRACE_GHOST_PUBLISHING) {
-            log(`Ghost post UPDATED AT`, 'debug', postUpdatedAt);
-          }
-
-          // Keep track of the post URL so that it can later be recognized as a post to update rather than as a post to create
-          retVal.set(post.metadata.slug, {
-            id: postId,
-            url: postUrl,
-            updated_at: postUpdatedAt,
-          });
-
-          new Notice(
-            `"${updatedPost.title}" (${post.filePath}) has been updated successfully!`,
-            NOTICE_TIMEOUT
-          );
-        } catch (error: unknown) {
-          log('Ghost publication error', 'debug', error);
-          new Notice(
-            `Failed to update the post. Error: ${error}`,
-            NOTICE_TIMEOUT
-          );
-        }
-        break;
-      default:
-        // FIXME remove
-        // @ts-ignore
-        assertUnreachable(post.publishAction);
+      // We delay the processing to avoid hitting the rate limits of Ghost
+      await delay(DELAY_BETWEEN_ACTIONS);
     }
-
-    // We delay the processing to avoid hitting the rate limits of Ghost
-    await delay(DELAY_BETWEEN_ACTIONS);
   }
 
   return retVal;
