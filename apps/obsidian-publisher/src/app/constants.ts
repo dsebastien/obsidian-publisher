@@ -78,6 +78,10 @@ export const DEBUG_TRACE_PUBLISHING_PREPARATION = false;
  */
 export const DEBUG_TRACE_PUBLISHING_RESULTS_HANDLING = true;
 /**
+ * Whether to skip the publish action for Ghost posts (only useful for debugging)
+ */
+export const DEBUG_SKIP_GHOST_PUBLISH_ACTION = false;
+/**
  * Regex that can be used to identify images
  * WARNING: With /gmi, the regex is stateful, and lastIndex must be reset each time
  */
