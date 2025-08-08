@@ -68,8 +68,8 @@ Not ready for prime time...
   - `opublisher_ghost_newsletter_only`: Only send to the newsletter
     - Type: boolean
     - Default: false
-  - `opublisher_ghost_canonical_url`: Canonical URL to use on Ghost
-  - `opublisher_medium_canonical_url`: Canonical URL to use on Medium
+  - `opublisher_ghost_canonical_url`: If set, then the canonical URL will be set to the configured URL when publishing to Ghost
+  - `opublisher_medium_canonical_url`: If set, then the canonical URL will be set to the configured URL when publishing to Medium
   - `opublisher_ghost_id`: Id of the post on Ghost (if already exists). Set automatically by the plugin after a post has been published
   - `opublisher_ghost_url`: URL of the post on Ghost. Set automatically by the plugin after a post has been published
   - `opublisher_medium_id`: Id of the post on Medium (if already exists). Set automatically by the plugin after a post has been published
@@ -104,12 +104,14 @@ Not ready for prime time...
   - Update
     - Content
     - Metadata
+- Links
+  - Remove links that point to non-existent notes
+  - Remove links that point to notes that don't have the expected metadata (at least slug and status)
+  - Rewrite Markdown links and Obsidian links that point to local files so that they point to: `<base url of the target platform>/<slug>`
+  - Set the title of those links to either (1) the existing display text of the link or (2) the title override (if there is one), or (3) the file basename
 
 ### How the plugin could deal with...
 
-- Links
-  - Adapt to match target platform Base URL
-  - Remove those that don't correspond to also published posts
 - Embedded Tweets
   - Convert to the target platform's syntax (if any)
 - Embedded YouTube Videos
